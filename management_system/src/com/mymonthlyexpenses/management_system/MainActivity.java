@@ -1,0 +1,985 @@
+package com.mymonthlyexpenses.management_system;
+
+import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.text.DateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+
+import org.apache.commons.lang3.text.WordUtils;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.StatusLine;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import android.app.ProgressDialog;
+import android.content.Context;
+import android.content.Intent;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.os.Handler;
+import android.support.v4.app.FragmentActivity;
+import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
+import android.widget.Spinner;
+
+import com.mymonthlyexpenses.management_system.UpdateStoreItemDialogFragment.UpdateStoreItemDialogListener;
+
+public class MainActivity extends FragmentActivity implements
+		UpdateStoreItemDialogListener {
+
+	/*
+	 * We are going to use a set of helper arrays to hold our information
+	 * locally while we update it
+	 */
+	public static ArrayList<ShoppingItemCategory> categories = new ArrayList<ShoppingItemCategory>();
+	public static ArrayList<Store> stores = new ArrayList<Store>();
+	public static ArrayList<ShoppingItem> shoppingItems = new ArrayList<ShoppingItem>();
+	public static ArrayList<StoreItem> storeItems = new ArrayList<StoreItem>();
+	public static ArrayList<ShoppingItemUnit> shoppingItemUnits = new ArrayList<ShoppingItemUnit>();
+
+	// Since the goal of this application is to update our store items I think
+	// it makes sense to have one static JSONArray we use for it
+	public static JSONArray storeItemsJSONArray;
+
+	public Spinner storesSpinner;
+	public Spinner categoriesSpinner;
+
+	public StoreItemsArrayAdapter storeItemsArrayAdapter;
+
+	private static ProgressDialog pd;
+	private Context context;
+	
+	public Boolean readAndSaveJSONFeed(String jsonFileName, String URL) {
+		StringBuilder stringBuilder = new StringBuilder();
+		HttpClient httpClient = new DefaultHttpClient();
+		HttpGet httpGet = new HttpGet(URL);
+		try {
+			HttpResponse response = httpClient.execute(httpGet);
+			StatusLine statusLine = response.getStatusLine();
+			int statusCode = statusLine.getStatusCode();
+			if (statusCode == 200) {
+				HttpEntity entity = response.getEntity();
+				InputStream inputStream = entity.getContent();
+				BufferedReader reader = new BufferedReader(
+						new InputStreamReader(inputStream));
+				String line;
+				while ((line = reader.readLine()) != null) {
+					stringBuilder.append(line);
+				}
+				inputStream.close();
+			} else {
+				Log.d("JSON", "Failed to download file");
+				return false;
+			}
+		} catch (Exception e) {
+			Log.d("readJSONFeed", e.getLocalizedMessage());
+			return false;
+		}
+
+		/*
+		 * Save our file to the file system
+		 */
+
+		try {
+			/*
+			 * FileOutputStream fOut = openFileOutput(jsonFileName,
+			 * MODE_PRIVATE);
+			 * 
+			 * OutputStreamWriter osw = new OutputStreamWriter(fOut);
+			 * 
+			 * osw.write(stringBuilder.toString()); osw.close();
+			 */
+
+			FileOutputStream outputStream;
+
+			outputStream = openFileOutput(jsonFileName, Context.MODE_PRIVATE);
+			outputStream.write(stringBuilder.toString().getBytes());
+			outputStream.close();
+
+		} catch (IOException ioe) {
+			ioe.printStackTrace();
+			return false;
+		}
+
+		return true;
+	}
+
+	private class ReadAndSaveManagementJSONFeedTask extends
+			AsyncTask<String, Void, Boolean> {
+
+		@Override
+		protected Boolean doInBackground(String... urls) {
+			return readAndSaveJSONFeed(urls[0], urls[1]);
+		}
+
+		protected void onPostExecute(String result) {
+
+		}
+	}
+
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_main);
+
+		/*
+		 * Read our json files into arrays we can use as long as the application
+		 * is running
+		 */
+		initDatabaseArrays();
+
+		storesSpinner = (Spinner) findViewById(R.id.storesSpinner);
+		categoriesSpinner = (Spinner) findViewById(R.id.categoriesSpinner);
+
+		this.initStoreSpinner(storesSpinner, stores);
+		this.initCategorySpinner(categoriesSpinner, categories);
+
+		String selectedStore = storesSpinner.getSelectedItem().toString();
+		String selectedCategory = categoriesSpinner.getSelectedItem()
+				.toString();
+		String selectedStoreId = MainActivity
+				.getStoreIdBasedOnName(selectedStore);
+		String selectedCategoryId = MainActivity
+				.getCategoryIdBasedOnName(selectedCategory);
+
+		// Init our one and only StoreItemsArrayAdapter
+		storeItemsArrayAdapter = new StoreItemsArrayAdapter(this,
+				getItemsBasedOnCategoryAndStore(storeItems, selectedCategoryId,
+						selectedStoreId));
+
+		// storeItemsArrayAdapter.setNotifyOnChange(true);
+
+		categoriesSpinner
+				.setOnItemSelectedListener(new CategoriesSpinnerOnItemSelectedListener(
+						this, storeItemsArrayAdapter));
+
+		storesSpinner
+				.setOnItemSelectedListener(new StoresSpinnerOnItemSelectedListener(
+						this, storeItemsArrayAdapter));
+
+		// initiate search autocomplete text view
+
+		AutoCompleteTextView serachTextView = (AutoCompleteTextView) findViewById(R.id.autoCompleteSearchView);
+		serachTextView.setThreshold(3);
+		serachTextView.setAdapter(storeItemsArrayAdapter);
+
+	}
+
+	@Override
+	public void onStop() {
+		super.onStop();
+		categories.clear();
+		stores.clear();
+		shoppingItems.clear();
+		storeItems.clear();
+		shoppingItemUnits.clear();
+	}
+
+	public static ArrayList<StoreItem> getItemsBasedOnCategoryAndStore(
+			ArrayList<StoreItem> storeItems, String selectedCategoryId,
+			String selectedStoreId) {
+
+		ArrayList<StoreItem> storeItemsInCategoryAndStore = new ArrayList<StoreItem>();
+
+		/*
+		 * Add to StoreItemsInCategoryAndStore all shopping items based on a
+		 * category and also update their prices based on the store item
+		 * information
+		 */
+		// Go over all shoppingItmes
+		boolean exists = false;
+
+		for (ShoppingItem shoppingItem : shoppingItems) {
+			// If a shopping item is in our category
+			if (shoppingItem.getCategoryId().equalsIgnoreCase(
+					selectedCategoryId)) {
+				// I am going to start by assuming that this shopping items does
+				// not exist in the store items array
+				exists = false;
+
+				for (StoreItem storeItem : storeItems) {
+					if ((storeItem.getShoppingItemId().equalsIgnoreCase(
+							shoppingItem.getId()) && (storeItem.getStoreId()
+							.equalsIgnoreCase(selectedStoreId)))) {
+						storeItemsInCategoryAndStore.add(storeItem);
+						exists = true;
+						break;
+					}
+				}
+
+				// If I checked the shopping item against all store items and
+				// exists still equals false
+				// Than I am going to create a new store item based on the
+				// shopping item and add it to
+				// The storeItemsInCategoryAndStore array.
+				if (!exists) {
+					StoreItem newStoreItem = new StoreItem();
+					newStoreItem.setShoppingItemCategoryId(shoppingItem
+							.getCategoryId());
+					newStoreItem.setShoppingItemId(shoppingItem.getId());
+					newStoreItem.setShoppingItemImageLocation(shoppingItem
+							.getImageLocation());
+					newStoreItem.setShoppingItemName(shoppingItem.getName());
+					newStoreItem.setShoppingItemDescription(shoppingItem
+							.getDescription());
+					newStoreItem.setStoreId(selectedStoreId);
+					newStoreItem.setPrice("Unknown at this time");
+					newStoreItem.setQuantity("Unknown at this time");
+					newStoreItem
+							.setShoppingItemUnit(getShoppingItemUnitFromUnitId(shoppingItem
+									.getShoppingItemUnitId()));
+					newStoreItem.setUpdated("0");
+
+					storeItemsInCategoryAndStore.add(newStoreItem);
+				}
+
+			}
+		}
+
+		/*
+		 * old code StoreItem[] itemArray = new
+		 * StoreItem[storeItemsInCategoryAndStore .size()]; StoreItem[]
+		 * returnedArray = storeItemsInCategoryAndStore .toArray(itemArray);
+		 * 
+		 * return returnedArray;
+		 */
+
+		return storeItemsInCategoryAndStore;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see android.app.Activity#onOptionsItemSelected(android.view.MenuItem)
+	 * Sync information from the server once the user clicks the sync from
+	 * server menu
+	 */
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		// Handle item selection
+		switch (item.getItemId()) {
+		case R.id.sync_from_server:
+			syncFromServer();
+			return true;
+		case R.id.sync_to_server:
+			new SyncToServerTask()
+					.execute(
+							"/data/data/com.mymonthlyexpenses.management_system/files/store_items.json",
+							"http://192.168.1.124/management/syncToServer.php");
+			return true;
+		default:
+			return super.onOptionsItemSelected(item);
+		}
+	}
+
+	private void syncFromServer() {
+		/*
+		 * new ReadAndSaveManagementJSONFeedTask() .execute(
+		 * "shopping_items.json",
+		 * "http://192.168.1.124/management/manageStoreItemController.php?sync_shopping_items=from_server"
+		 * ); new ReadAndSaveManagementJSONFeedTask() .execute(
+		 * "shopping_item_category.json",
+		 * "http://192.168.1.124/management/manageStoreItemController.php?sync_shopping_item_category=from_server"
+		 * ); new ReadAndSaveManagementJSONFeedTask() .execute( "stores.json",
+		 * "http://192.168.1.124/management/manageStoreItemController.php?sync_stores=from_server"
+		 * ); new ReadAndSaveManagementJSONFeedTask() .execute(
+		 * "store_items.json",
+		 * "http://192.168.1.124/management/manageStoreItemController.php?sync_store_items=from_server"
+		 * ); new ReadAndSaveManagementJSONFeedTask() .execute(
+		 * "shopping_items_unit.json",
+		 * "http://192.168.1.124/management/manageStoreItemController.php?sync_shopping_item_unit=from_server"
+		 * );
+		 */
+
+		AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
+
+			@Override
+			protected void onPreExecute() {
+				pd = new ProgressDialog(MainActivity.this);
+				pd.setTitle("Processing...");
+				pd.setMessage("Please wait.");
+				pd.setCancelable(false);
+				pd.setIndeterminate(true);
+				pd.show();
+			}
+
+			@Override
+			protected Void doInBackground(Void... arg0) {
+				try {
+					readAndSaveJSONFeed(
+							"shopping_items.json",
+							"http://192.168.1.124/management/manageStoreItemController.php?sync_shopping_items=from_server");
+
+					readAndSaveJSONFeed(
+							"shopping_item_category.json",
+							"http://192.168.1.124/management/manageStoreItemController.php?sync_shopping_item_category=from_server");
+
+					readAndSaveJSONFeed(
+							"stores.json",
+							"http://192.168.1.124/management/manageStoreItemController.php?sync_stores=from_server");
+
+					readAndSaveJSONFeed(
+							"store_items.json",
+							"http://192.168.1.124/management/manageStoreItemController.php?sync_store_items=from_server");
+
+					readAndSaveJSONFeed(
+							"shopping_items_unit.json",
+							"http://192.168.1.124/management/manageStoreItemController.php?sync_shopping_item_unit=from_server");
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				return null;
+			}
+
+			@Override
+			protected void onPostExecute(Void result) {
+				if (pd != null) {
+					pd.dismiss();
+				}
+			}
+
+		};
+		task.execute((Void[]) null);
+	}
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		getMenuInflater().inflate(R.menu.main, menu);
+		return true;
+	}
+
+	private void initCategorySpinner(Spinner spinner,
+			ArrayList<ShoppingItemCategory> categoryArrayList) {
+		String[] itemArray = new String[categoryArrayList.size()];
+		for (int i = 0; i < itemArray.length; i++) {
+			itemArray[i] = WordUtils.capitalize(categoryArrayList.get(i)
+					.getName());
+		}
+
+		ArrayAdapter<String> spinnerArrayAdapter;
+
+		spinnerArrayAdapter = new ArrayAdapter<String>(getBaseContext(),
+				android.R.layout.simple_spinner_item, itemArray);
+
+		// Specify the layout to use when the list of choices appears
+		spinnerArrayAdapter
+				.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+
+		// Apply the adapter to the spinner
+		spinner.setAdapter(spinnerArrayAdapter);
+	}
+
+	private void initStoreSpinner(Spinner spinner,
+			ArrayList<Store> storeArrayList) {
+		String[] itemArray = new String[storeArrayList.size()];
+		for (int i = 0; i < itemArray.length; i++) {
+			itemArray[i] = storeArrayList.get(i).getName();
+		}
+
+		ArrayAdapter<String> spinnerArrayAdapter;
+
+		spinnerArrayAdapter = new ArrayAdapter<String>(getBaseContext(),
+				android.R.layout.simple_spinner_item, itemArray);
+
+		// Specify the layout to use when the list of choices appears
+		spinnerArrayAdapter
+				.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+
+		spinner.invalidate();
+
+		// Apply the adapter to the spinner
+		spinner.setAdapter(spinnerArrayAdapter);
+	}
+
+	public static ShoppingItem[] getItemsBasedOnCategory(
+			ArrayList<ShoppingItem> shoppingItems, String categoryId) {
+
+		ArrayList<ShoppingItem> shoppingItemsInCategory = new ArrayList<ShoppingItem>();
+
+		/*
+		 * Add to shoppingItemsInCategory only items that have a specific
+		 * category id
+		 */
+		for (ShoppingItem item : shoppingItems) {
+			if (item.getCategoryId().equalsIgnoreCase(categoryId))
+				shoppingItemsInCategory.add(item);
+		}
+
+		ShoppingItem[] itemArray = new ShoppingItem[shoppingItemsInCategory
+				.size()];
+		ShoppingItem[] returnedArray = shoppingItemsInCategory
+				.toArray(itemArray);
+
+		return returnedArray;
+	}
+
+	private void initShoppingItemsArray() {
+
+		/*
+		 * Create an ArrayList of shopping item objects
+		 */
+		try {
+			FileInputStream fIn = openFileInput("shopping_items.json");
+			InputStreamReader isr = new InputStreamReader(fIn);
+
+			char[] inputBuffer = new char[100];
+			String s = "";
+			int charRead;
+			while ((charRead = isr.read(inputBuffer)) > 0) {
+				// convert the chars to String
+				String readString = String
+						.copyValueOf(inputBuffer, 0, charRead);
+				s += readString;
+
+				inputBuffer = new char[100];
+			}
+			isr.close();
+
+			JSONObject jsonObject = new JSONObject(s);
+			JSONArray jsonArray = new JSONArray(
+					jsonObject.getString("shopping_items"));
+
+			for (int i = 0; i < jsonArray.length(); i++) {
+				JSONObject item = jsonArray.getJSONObject(i);
+				ShoppingItem shoppingItem = new ShoppingItem();
+
+				shoppingItem.setName(item.getString("Name"));
+				shoppingItem.setId(item.getString("Id"));
+				shoppingItem.setDescription(item.getString("Description"));
+				shoppingItem.setCategoryId(item
+						.getString("Shopping_Item_Category_Id"));
+				shoppingItem.setShoppingItemUnitId(item
+						.getString("Shopping_Item_Unit_Id"));
+				shoppingItem.setImageLocation(item.getString("Image_Location"));
+
+				shoppingItems.add(shoppingItem);
+			}
+		} catch (IOException ioe) {
+			Log.d("initShoppingItemsArray", ioe.getLocalizedMessage());
+		} catch (Exception e) {
+			Log.d("initShoppingItemsArray", e.getLocalizedMessage());
+		}
+	}
+
+	private void initStoreItemsArray() {
+
+		/*
+		 * Create an ArrayList of store item objects
+		 */
+		try {
+			FileInputStream fIn = openFileInput("store_items.json");
+			InputStreamReader isr = new InputStreamReader(fIn);
+
+			char[] inputBuffer = new char[100];
+			String s = "";
+			int charRead;
+			while ((charRead = isr.read(inputBuffer)) > 0) {
+				// convert the chars to String
+				String readString = String
+						.copyValueOf(inputBuffer, 0, charRead);
+				s += readString;
+
+				inputBuffer = new char[100];
+			}
+			isr.close();
+
+			JSONObject jsonObject = new JSONObject(s);
+			storeItemsJSONArray = new JSONArray(
+					jsonObject.getString("store_items"));
+
+			for (int i = 0; i < storeItemsJSONArray.length(); i++) {
+				JSONObject item = storeItemsJSONArray.getJSONObject(i);
+				StoreItem storeItem = new StoreItem();
+
+				storeItem.setId(item.getString("Id"));
+				storeItem.setStoreId(item.getString("Store_Id"));
+				storeItem.setShoppingItemId(item.getString("Shopping_Item_Id"));
+				storeItem.setShoppingItemCategoryId(item
+						.getString("Shopping_Item_Shopping_Item_Category_Id"));
+				storeItem.setPrice(item.getString("Price"));
+				storeItem.setQuantity(item.getString("Quantity"));
+				storeItem.setUpdated(item.getString("Updated"));
+
+				storeItems.add(storeItem);
+			}
+		} catch (IOException ioe) {
+			Log.d("initStoreItemsArray", ioe.getLocalizedMessage());
+		} catch (Exception e) {
+			Log.d("initStoreItemsArray", e.getLocalizedMessage());
+		}
+	}
+
+	private void initShoppingItemsCategoriesArray() {
+
+		/*
+		 * Create an ArrayList of shopping item category objects
+		 */
+		try {
+			FileInputStream fIn = openFileInput("shopping_item_category.json");
+			InputStreamReader isr = new InputStreamReader(fIn);
+
+			char[] inputBuffer = new char[100];
+			String s = "";
+			int charRead;
+			while ((charRead = isr.read(inputBuffer)) > 0) {
+				// convert the chars to String
+				String readString = String
+						.copyValueOf(inputBuffer, 0, charRead);
+				s += readString;
+
+				inputBuffer = new char[100];
+			}
+			isr.close();
+
+			JSONObject jsonObject = new JSONObject(s);
+			JSONArray jsonArray = new JSONArray(
+					jsonObject.getString("categories"));
+
+			for (int i = 0; i < jsonArray.length(); i++) {
+				JSONObject item = jsonArray.getJSONObject(i);
+				ShoppingItemCategory shoppingItemCategory = new ShoppingItemCategory();
+
+				shoppingItemCategory.setName(item.getString("Name"));
+				shoppingItemCategory.setId(item.getString("Id"));
+				shoppingItemCategory.setImageLocation(item
+						.getString("Image_location"));
+
+				categories.add(shoppingItemCategory);
+			}
+		} catch (IOException ioe) {
+			Log.d("initShoppingItemsCategoriesArray", ioe.getLocalizedMessage());
+		} catch (Exception e) {
+			Log.d("initShoppingItemsCategoriesArray", e.getLocalizedMessage());
+		}
+	}
+
+	private void initShoppingItemsUnitArray() {
+
+		/*
+		 * Create an ArrayList of shopping item unit objects
+		 */
+		try {
+			FileInputStream fIn = openFileInput("shopping_items_unit.json");
+			InputStreamReader isr = new InputStreamReader(fIn);
+
+			char[] inputBuffer = new char[100];
+			String s = "";
+			int charRead;
+			while ((charRead = isr.read(inputBuffer)) > 0) {
+				// convert the chars to String
+				String readString = String
+						.copyValueOf(inputBuffer, 0, charRead);
+				s += readString;
+
+				inputBuffer = new char[100];
+			}
+			isr.close();
+
+			JSONObject jsonObject = new JSONObject(s);
+			JSONArray jsonArray = new JSONArray(jsonObject.getString("units"));
+
+			for (int i = 0; i < jsonArray.length(); i++) {
+				JSONObject item = jsonArray.getJSONObject(i);
+				ShoppingItemUnit shoppingItemUnit = new ShoppingItemUnit();
+
+				shoppingItemUnit.setName(item.getString("Name"));
+				shoppingItemUnit.setId(item.getString("Id"));
+
+				shoppingItemUnits.add(shoppingItemUnit);
+			}
+		} catch (IOException ioe) {
+			Log.d("initShoppingItemsUnitArray", ioe.getLocalizedMessage());
+		} catch (Exception e) {
+			Log.d("initShoppingItemsUnitArray", e.getLocalizedMessage());
+		}
+	}
+
+	private void initStoresArray() {
+
+		/*
+		 * Create an ArrayList of shopping item objects
+		 */
+		try {
+			FileInputStream fIn = openFileInput("stores.json");
+			InputStreamReader isr = new InputStreamReader(fIn);
+
+			char[] inputBuffer = new char[100];
+			String s = "";
+			int charRead;
+			while ((charRead = isr.read(inputBuffer)) > 0) {
+				// convert the chars to String
+				String readString = String
+						.copyValueOf(inputBuffer, 0, charRead);
+				s += readString;
+
+				inputBuffer = new char[100];
+			}
+			isr.close();
+
+			JSONObject jsonObject = new JSONObject(s);
+			JSONArray jsonArray = new JSONArray(jsonObject.getString("stores"));
+
+			for (int i = 0; i < jsonArray.length(); i++) {
+				JSONObject item = jsonArray.getJSONObject(i);
+				Store store = new Store();
+
+				store.setName(item.getString("Name"));
+				store.setId(item.getString("Id"));
+				store.setStreet(item.getString("Street"));
+				store.setCity(item.getString("City"));
+				store.setState(item.getString("State"));
+				store.setZip(item.getString("Zip"));
+				store.setImageLocation(item.getString("Image_Location"));
+
+				stores.add(store);
+			}
+		} catch (IOException ioe) {
+			Log.d("initStoresArray", ioe.getLocalizedMessage());
+		} catch (Exception e) {
+			Log.d("initStoresArray", e.getLocalizedMessage());
+		}
+	}
+
+	/*
+	 * This method will match shopping items with store items and add to the
+	 * store item object the shopping item name and image location
+	 */
+	private void combineShoppingItemWithStoreItems() {
+		for (StoreItem storeItem : storeItems) {
+			for (ShoppingItem shoppingItem : shoppingItems) {
+				if (storeItem.getShoppingItemId().equalsIgnoreCase(
+						shoppingItem.getId())) {
+					storeItem.setShoppingItemName(shoppingItem.getName());
+					storeItem.setShoppingItemDescription(shoppingItem
+							.getDescription());
+					storeItem.setShoppingItemImageLocation(shoppingItem
+							.getImageLocation());
+
+					// Convert shopping item unit id to a human readable string
+					for (ShoppingItemUnit unit : shoppingItemUnits) {
+						if (unit.getId().equalsIgnoreCase(
+								shoppingItem.getShoppingItemUnitId())) {
+							storeItem.setShoppingItemUnit(unit.getName());
+						}
+					}
+				}
+			}
+		}
+	}
+
+	public static String getShoppingItemUnitFromUnitId(String shoppingItemUnitId) {
+		for (ShoppingItemUnit unit : shoppingItemUnits) {
+			if (unit.getId().equalsIgnoreCase(shoppingItemUnitId))
+				return unit.getName();
+		}
+
+		return null;
+	}
+
+	public static String getCategoryIdBasedOnName(String categoryName) {
+		for (ShoppingItemCategory category : categories) {
+			if (category.getName().equalsIgnoreCase(categoryName))
+				return category.getId();
+		}
+
+		return null;
+	}
+
+	public static String getStoreIdBasedOnName(String storeName) {
+		for (Store store : stores) {
+			if (store.getName().equalsIgnoreCase(storeName))
+				return store.getId();
+		}
+
+		return null;
+	}
+
+	/*
+	 * This method will initialize al of our helper arrays based on our local
+	 * json files
+	 */
+	private void initDatabaseArrays() {
+
+		/*
+		 * This will only work if we already have our files from the server
+		 * therefore we have to check if the files exist, if they dont we need
+		 * to go get them from the server
+		 */
+		File file = getBaseContext().getFileStreamPath("store_items.json");
+		if (file.exists()) {
+			initShoppingItemsArray();
+			initShoppingItemsCategoriesArray();
+			initShoppingItemsUnitArray();
+			initStoreItemsArray();
+			initStoresArray();
+			combineShoppingItemWithStoreItems();
+		} else {
+			syncFromServer();
+		}
+
+	}
+
+	/*
+	 * Update adaper with updated store item
+	 */
+	public void onFinishInputDialog(String itemPrice, String itemSize,
+			String itemName, String itemDescription, String itemUnit) {
+
+		// We want to make the updatedItem a local variable that we can use
+		// later to update our store items array and local JSON file
+		StoreItem updatedItem = null;
+
+		String shoppingItemCategoryId = getCategoryIdBasedOnName(categoriesSpinner
+				.getSelectedItem().toString());
+		String storeId = getStoreIdBasedOnName(storesSpinner.getSelectedItem()
+				.toString());
+		
+		String currentDateTimeString = DateFormat.getDateTimeInstance().format(new Date());
+		
+		// Find our item in the storeItemArrayAdapter and update its price and
+		// size values. We are using the item description since it is more
+		// unique than its name, which we might
+		// have duplicates in our database (for good reasons).
+		for (int i = 0; i < storeItemsArrayAdapter.getCount(); i++) {
+			StoreItem tmpItem = storeItemsArrayAdapter.getItem(i);
+			if (tmpItem.getShoppingItemDescription().equalsIgnoreCase(
+					itemDescription)) {
+				updatedItem = new StoreItem(tmpItem);
+				updatedItem.setPrice(itemPrice);
+				updatedItem.setQuantity(itemSize);
+				updatedItem.setUpdated(currentDateTimeString);
+
+				// Now we can update our storeItemsArrayAdapter
+				storeItemsArrayAdapter.remove(tmpItem);
+				storeItemsArrayAdapter.add(updatedItem);
+				storeItemsArrayAdapter.sort(StoreItem.StoreItemComparator);
+				storeItemsArrayAdapter.notifyDataSetChanged();
+
+				// Clear the Autocomplete serach
+				((AutoCompleteTextView) this
+						.findViewById(R.id.autoCompleteSearchView)).setText("");
+				((AutoCompleteTextView) this
+						.findViewById(R.id.autoCompleteSearchView))
+						.dismissDropDown();
+
+				break;
+			}
+		}
+
+		// Next we need to update our static application storeItems ArrayList,
+		// but dont forget that you need to update a specific store and NOT all
+		// sotres with this item!
+		boolean exist = false;
+		for (StoreItem storeItem : storeItems) {
+			if ((storeItem.getShoppingItemName().equalsIgnoreCase(itemName))
+					&& (storeItem.getStoreId().equalsIgnoreCase(storeId))) {
+				storeItem.setPrice(itemPrice);
+				storeItem.setQuantity(itemSize);
+				storeItem.setUpdated(currentDateTimeString);
+
+				exist = true;
+
+				// No need to go on...
+				break;
+			}
+		}
+
+		// If after checking all store items in our array we still didnt find
+		// the item, than we need to add a new one
+		if (!exist) {
+			// Better to be sure than sorry
+			if (updatedItem != null)
+				storeItems.add(updatedItem);
+		}
+
+		// Last but not least - we need to update our store items JSONArray and
+		// save it to disk
+		try {
+			if (updatedItem.getId() == "") {
+				exist = false;
+			} else {
+				exist = true;
+			}
+
+			JSONObject storeItemJSONObject;
+			if (exist) {
+				for (int i = 0; i < storeItemsJSONArray.length(); i++) {
+					storeItemJSONObject = storeItemsJSONArray.getJSONObject(i);
+
+					// First lest check if we already have this item in the
+					// JSONArray
+					if ((storeItemJSONObject.getString("Id")
+							.equalsIgnoreCase(updatedItem.getId()))) {
+						storeItemJSONObject.put("Price", itemPrice);
+						storeItemJSONObject.put("Quantity", itemSize);
+						exist = true;
+
+						// No need to keep on...
+						break;
+					}
+
+				}
+			} else {
+				storeItemJSONObject = new JSONObject();
+
+				storeItemJSONObject.put("Id", "");
+				storeItemJSONObject.put("Store_Id", storeId);
+				storeItemJSONObject.put("Shopping_Item_Id",
+						updatedItem.getShoppingItemId());
+				storeItemJSONObject.put(
+						"Shopping_Item_Shopping_Item_Category_Id",
+						shoppingItemCategoryId);
+				storeItemJSONObject.put("Price", itemPrice);
+				storeItemJSONObject.put("Quantity", itemSize);
+				storeItemJSONObject.put("Updated", currentDateTimeString);
+
+				storeItemsJSONArray.put(storeItemJSONObject);
+			}
+
+			// OK, we updated our storeItemsJSONArray, now its time to write it
+			// to disk
+			FileOutputStream outputStream;
+
+			outputStream = openFileOutput("store_items.json",
+					Context.MODE_PRIVATE);
+
+			// Write our JSONArray to disk...
+			StringBuilder stringBuilder = new StringBuilder();
+
+			stringBuilder.append("{\"store_items\":");
+			stringBuilder.append(storeItemsJSONArray.toString());
+			stringBuilder.append("}");
+
+			outputStream.write(stringBuilder.toString().getBytes());
+			outputStream.close();
+
+		} catch (IOException ioe) {
+			Log.d("onFinishInputDialog", ioe.getLocalizedMessage());
+		} catch (Exception e) {
+			Log.d("onFinishInputDialog", e.getLocalizedMessage());
+		}
+
+	}
+
+	/**
+	 * Upload the specified file to the PHP server.
+	 * 
+	 */
+	@SuppressWarnings("unused")
+	private void uploadFile(String pathToFile, String serverURL) {
+		HttpURLConnection connection = null;
+		DataOutputStream outputStream = null;
+		DataInputStream inputStream = null;
+
+		String pathToOurFile = pathToFile;
+		String urlServer = serverURL;
+		String lineEnd = "\r\n";
+		String twoHyphens = "--";
+		String boundary = "*****";
+
+		int bytesRead, bytesAvailable, bufferSize;
+		byte[] buffer;
+		int maxBufferSize = 1 * 1024 * 1024;
+
+		try {
+			FileInputStream fileInputStream = new FileInputStream(new File(
+					pathToOurFile));
+
+			URL url = new URL(urlServer);
+			connection = (HttpURLConnection) url.openConnection();
+
+			// Allow Inputs & Outputs
+			connection.setDoInput(true);
+			connection.setDoOutput(true);
+			connection.setUseCaches(false);
+
+			// Enable POST method
+			connection.setRequestMethod("POST");
+
+			connection.setRequestProperty("Connection", "Keep-Alive");
+			connection.setRequestProperty("Content-Type",
+					"multipart/form-data;boundary=" + boundary);
+
+			outputStream = new DataOutputStream(connection.getOutputStream());
+			outputStream.writeBytes(twoHyphens + boundary + lineEnd);
+			outputStream
+					.writeBytes("Content-Disposition: form-data; name=\"uploadedfile\";filename=\""
+							+ pathToOurFile + "\"" + lineEnd);
+			outputStream.writeBytes(lineEnd);
+
+			bytesAvailable = fileInputStream.available();
+			bufferSize = Math.min(bytesAvailable, maxBufferSize);
+			buffer = new byte[bufferSize];
+
+			// Read file
+			bytesRead = fileInputStream.read(buffer, 0, bufferSize);
+
+			while (bytesRead > 0) {
+				outputStream.write(buffer, 0, bufferSize);
+				bytesAvailable = fileInputStream.available();
+				bufferSize = Math.min(bytesAvailable, maxBufferSize);
+				bytesRead = fileInputStream.read(buffer, 0, bufferSize);
+			}
+
+			outputStream.writeBytes(lineEnd);
+			outputStream.writeBytes(twoHyphens + boundary + twoHyphens
+					+ lineEnd);
+
+			// Responses from the server (code and message)
+			int serverResponseCode = connection.getResponseCode();
+			String serverResponseMessage = connection.getResponseMessage();
+
+			String serverHTMLResponse = connection.getContent().toString();
+
+			fileInputStream.close();
+			outputStream.flush();
+			outputStream.close();
+
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+	}
+
+	private class SyncToServerTask extends AsyncTask<String, Void, Void> {
+		
+		@Override
+		protected void onPreExecute() {
+			pd = new ProgressDialog(MainActivity.this);
+			pd.setTitle("Processing...");
+			pd.setMessage("Please wait.");
+			pd.setCancelable(false);
+			pd.setIndeterminate(true);
+			pd.show();
+		}
+		
+		@Override
+		protected Void doInBackground(String... params) {
+			uploadFile(params[0], params[1]);
+			
+			return null;
+		}
+
+		protected void onPostExecute(Void result) {
+			if (pd != null) {
+				pd.dismiss();
+			}
+		}
+	}
+}

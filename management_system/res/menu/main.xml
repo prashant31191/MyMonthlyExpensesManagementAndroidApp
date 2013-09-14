@@ -1,0 +1,19 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <item
+        android:id="@+id/action_settings"
+        android:orderInCategory="100"
+        android:showAsAction="never"
+        android:title="@string/action_settings"/>
+    <item
+        android:id="@+id/sync_from_server"
+        android:orderInCategory="100"
+        android:showAsAction="never"
+        android:title="@string/sync_from_server"/>
+    <item
+        android:id="@+id/sync_to_server"
+        android:orderInCategory="100"
+        android:showAsAction="never"
+        android:title="@string/sync_to_server"/>
+
+</menu>

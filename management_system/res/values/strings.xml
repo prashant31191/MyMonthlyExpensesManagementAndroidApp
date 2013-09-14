@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Management System</string>
+    <string name="action_settings">Settings</string>
+    <string name="sync_from_server">Sync from Server</string>
+    <string name="sync_to_server">Sync to Server</string>
+    <string name="categories_spinner_label">Categories</string>
+    <string name="stores_spinner_label">Stores</string>
+    <string name="title_activity_splash">SplashActivity</string>
+    <string name="search_label">Search</string>
+
+</resources>
