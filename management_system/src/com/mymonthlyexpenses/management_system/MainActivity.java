@@ -67,7 +67,7 @@ public class MainActivity extends FragmentActivity implements
 
 	private static ProgressDialog pd;
 	private Context context;
-	private boolean syncConfirmationFlag;
+	private boolean firsTimeSync = true;;
 
 	public Boolean readAndSaveJSONFeed(String jsonFileName, String URL) {
 		StringBuilder stringBuilder = new StringBuilder();
@@ -294,87 +294,50 @@ public class MainActivity extends FragmentActivity implements
 	}
 
 	private void syncFromServer() {
-		AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
-		// set the title of the Alert Dialog
-		alertDialogBuilder.setTitle("Sync Data?");
+		// If this is the first time the application is loaded we need to run
+		// without an alert dialog
+		if (firsTimeSync) {
+			// Since you cant run any network methods in the UI thread we must
+			// create a new thread for this sync
+			try {
+				startSyncFromServerAsyncTask();
+				firsTimeSync = false;
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		} else {
+			AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(
+					this);
+			// set the title of the Alert Dialog
+			alertDialogBuilder.setTitle("Sync Data?");
 
-		alertDialogBuilder.setMessage("Click yes to sync");
+			alertDialogBuilder.setMessage("Click yes to sync");
 
-		alertDialogBuilder.setCancelable(false);
+			alertDialogBuilder.setCancelable(false);
 
-		alertDialogBuilder.setPositiveButton("Yes",
-				new DialogInterface.OnClickListener() {
+			alertDialogBuilder.setPositiveButton("Yes",
+					new DialogInterface.OnClickListener() {
 
-					public void onClick(DialogInterface dialog, int id) {
+						public void onClick(DialogInterface dialog, int id) {
+							startSyncFromServerAsyncTask();
+						}
 
-						AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
+					});
 
-							@Override
-							protected void onPreExecute() {
+			alertDialogBuilder.setNegativeButton("No",
+					new DialogInterface.OnClickListener() {
 
-								pd = new ProgressDialog(MainActivity.this);
-								pd.setTitle("Processing...");
-								pd.setMessage("Please wait.");
-								pd.setCancelable(false);
-								pd.setIndeterminate(true);
-								pd.show();
-							}
+						public void onClick(DialogInterface dialog, int id) {
+							dialog.cancel();
+						}
 
-							@Override
-							protected Void doInBackground(Void... arg0) {
-								try {
-									readAndSaveJSONFeed(
-											"shopping_items.json",
-											"http://192.168.1.124/management/manageStoreItemController.php?sync_shopping_items=from_server");
+					});
 
-									readAndSaveJSONFeed(
-											"shopping_item_category.json",
-											"http://192.168.1.124/management/manageStoreItemController.php?sync_shopping_item_category=from_server");
+			AlertDialog alertDialog = alertDialogBuilder.create();
 
-									readAndSaveJSONFeed(
-											"stores.json",
-											"http://192.168.1.124/management/manageStoreItemController.php?sync_stores=from_server");
-
-									readAndSaveJSONFeed(
-											"store_items.json",
-											"http://192.168.1.124/management/manageStoreItemController.php?sync_store_items=from_server");
-
-									readAndSaveJSONFeed(
-											"shopping_items_unit.json",
-											"http://192.168.1.124/management/manageStoreItemController.php?sync_shopping_item_unit=from_server");
-								} catch (Exception e) {
-									// TODO Auto-generated catch block
-									e.printStackTrace();
-								}
-								return null;
-							}
-
-							@Override
-							protected void onPostExecute(Void result) {
-								if (pd != null) {
-									pd.dismiss();
-								}
-							}
-
-						};
-						task.execute((Void[]) null);
-					}
-
-				});
-
-		alertDialogBuilder.setNegativeButton("No",
-				new DialogInterface.OnClickListener() {
-
-					public void onClick(DialogInterface dialog, int id) {
-						dialog.cancel();
-					}
-
-				});
-
-		AlertDialog alertDialog = alertDialogBuilder.create();
-
-		alertDialog.show();
-
+			alertDialog.show();
+		}
 	}
 
 	private void syncToServer() {
@@ -418,6 +381,7 @@ public class MainActivity extends FragmentActivity implements
 							}
 
 						};
+
 						task.execute(
 								"/data/data/com.mymonthlyexpenses.management_system/files/store_items.json",
 								"http://192.168.1.124/management/syncToServer.php");
@@ -835,6 +799,12 @@ public class MainActivity extends FragmentActivity implements
 		String currentDateTimeString = DateFormat.getDateTimeInstance().format(
 				new Date());
 
+		// Create the MySQL datetime string
+		/*
+		 * SimpleDateFormat fmt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		 * String mysqlDateTime = fmt.format(new Date());
+		 */
+
 		// Find our item in the storeItemArrayAdapter and update its price and
 		// size values. We are using the item description since it is more
 		// unique than its name, which we might
@@ -911,6 +881,8 @@ public class MainActivity extends FragmentActivity implements
 							.equalsIgnoreCase(updatedItem.getId()))) {
 						storeItemJSONObject.put("Price", itemPrice);
 						storeItemJSONObject.put("Quantity", itemSize);
+						storeItemJSONObject.put("Updated",
+								currentDateTimeString);
 						exist = true;
 
 						// No need to keep on...
@@ -1075,6 +1047,60 @@ public class MainActivity extends FragmentActivity implements
 
 	@Override
 	public void onFinishSyncConfirmationDialog(boolean state) {
-		syncConfirmationFlag = state;
+
+	}
+
+	private void startSyncFromServerAsyncTask() {
+		AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
+
+			@Override
+			protected void onPreExecute() {
+
+				pd = new ProgressDialog(MainActivity.this);
+				pd.setTitle("Processing...");
+				pd.setMessage("Please wait.");
+				pd.setCancelable(false);
+				pd.setIndeterminate(true);
+				pd.show();
+			}
+
+			@Override
+			protected Void doInBackground(Void... arg0) {
+				try {
+					readAndSaveJSONFeed(
+							"shopping_items.json",
+							"http://192.168.1.124/management/manageStoreItemController.php?sync_shopping_items=from_server");
+
+					readAndSaveJSONFeed(
+							"shopping_item_category.json",
+							"http://192.168.1.124/management/manageStoreItemController.php?sync_shopping_item_category=from_server");
+
+					readAndSaveJSONFeed(
+							"stores.json",
+							"http://192.168.1.124/management/manageStoreItemController.php?sync_stores=from_server");
+
+					readAndSaveJSONFeed(
+							"store_items.json",
+							"http://192.168.1.124/management/manageStoreItemController.php?sync_store_items=from_server");
+
+					readAndSaveJSONFeed(
+							"shopping_items_unit.json",
+							"http://192.168.1.124/management/manageStoreItemController.php?sync_shopping_item_unit=from_server");
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				return null;
+			}
+
+			@Override
+			protected void onPostExecute(Void result) {
+				if (pd != null) {
+					pd.dismiss();
+				}
+			}
+
+		};
+		task.execute((Void[]) null);
 	}
 }
