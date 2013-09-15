@@ -37,7 +37,6 @@ import android.view.MenuItem;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Spinner;
-import android.widget.Toast;
 
 import com.mymonthlyexpenses.management_system.SyncConfirmationDialogFragment.SyncConfirmationDialogFragmentListener;
 import com.mymonthlyexpenses.management_system.UpdateStoreItemDialogFragment.UpdateStoreItemDialogListener;
@@ -66,6 +65,7 @@ public class MainActivity extends FragmentActivity implements
 
 	private static ProgressDialog pd;
 	private Context context;
+	private boolean syncConfirmationFlag;
 
 	public Boolean readAndSaveJSONFeed(String jsonFileName, String URL) {
 		StringBuilder stringBuilder = new StringBuilder();
@@ -277,14 +277,16 @@ public class MainActivity extends FragmentActivity implements
 		switch (item.getItemId()) {
 		case R.id.sync_from_server:
 			showSyncConfirmationDialog();
-			syncFromServer();
+			if (syncConfirmationFlag)
+				syncFromServer();
 			return true;
 		case R.id.sync_to_server:
 			showSyncConfirmationDialog();
-			new SyncToServerTask()
-					.execute(
-							"/data/data/com.mymonthlyexpenses.management_system/files/store_items.json",
-							"http://192.168.1.124/management/syncToServer.php");
+			if (syncConfirmationFlag)
+				new SyncToServerTask()
+						.execute(
+								"/data/data/com.mymonthlyexpenses.management_system/files/store_items.json",
+								"http://192.168.1.124/management/syncToServer.php");
 			return true;
 		default:
 			return super.onOptionsItemSelected(item);
@@ -992,13 +994,12 @@ public class MainActivity extends FragmentActivity implements
 		FragmentManager fragmentManager = getSupportFragmentManager();
 		SyncConfirmationDialogFragment yesnoDialog = new SyncConfirmationDialogFragment();
 		yesnoDialog.setCancelable(false);
-		yesnoDialog.setDialogTitle("Status change");
+		yesnoDialog.setDialogTitle("Are you SURE? This will replace ALL DATA");
 		yesnoDialog.show(fragmentManager, "yes/no dialog");
 	}
 
 	@Override
 	public void onFinishSyncConfirmationDialog(boolean state) {
-		Toast.makeText(this, "Returned from dialog: " + state,
-				Toast.LENGTH_SHORT).show();
+		syncConfirmationFlag = state;
 	}
 }
