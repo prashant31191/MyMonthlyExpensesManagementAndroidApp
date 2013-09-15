@@ -6,6 +6,7 @@ import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -481,21 +482,20 @@ public class MainActivity extends FragmentActivity implements
 		 * Create an ArrayList of shopping item objects
 		 */
 		try {
-			FileInputStream fIn = openFileInput("shopping_items.json");
-			InputStreamReader isr = new InputStreamReader(fIn);
-
-			char[] inputBuffer = new char[100];
+			String line;
 			String s = "";
-			int charRead;
-			while ((charRead = isr.read(inputBuffer)) > 0) {
-				// convert the chars to String
-				String readString = String
-						.copyValueOf(inputBuffer, 0, charRead);
-				s += readString;
+			// wrap a BufferedReader around FileReader
+			BufferedReader bufferedReader = new BufferedReader(
+					new FileReader(
+							"/data/data/com.mymonthlyexpenses.management_system/files/shopping_items.json"));
 
-				inputBuffer = new char[100];
+			// use the readLine method of the BufferedReader to read one line at
+			// a time.
+			// the readLine method returns null when there is nothing else to
+			// read.
+			while ((line = bufferedReader.readLine()) != null) {
+				s += line;
 			}
-			isr.close();
 
 			JSONObject jsonObject = new JSONObject(s);
 			JSONArray jsonArray = new JSONArray(
@@ -516,6 +516,7 @@ public class MainActivity extends FragmentActivity implements
 
 				shoppingItems.add(shoppingItem);
 			}
+
 		} catch (IOException ioe) {
 			Log.d("initShoppingItemsArray", ioe.getLocalizedMessage());
 		} catch (Exception e) {
@@ -529,21 +530,21 @@ public class MainActivity extends FragmentActivity implements
 		 * Create an ArrayList of store item objects
 		 */
 		try {
-			FileInputStream fIn = openFileInput("store_items.json");
-			InputStreamReader isr = new InputStreamReader(fIn);
 
-			char[] inputBuffer = new char[100];
+			String line;
 			String s = "";
-			int charRead;
-			while ((charRead = isr.read(inputBuffer)) > 0) {
-				// convert the chars to String
-				String readString = String
-						.copyValueOf(inputBuffer, 0, charRead);
-				s += readString;
+			// wrap a BufferedReader around FileReader
+			BufferedReader bufferedReader = new BufferedReader(
+					new FileReader(
+							"/data/data/com.mymonthlyexpenses.management_system/files/store_items.json"));
 
-				inputBuffer = new char[100];
+			// use the readLine method of the BufferedReader to read one line at
+			// a time.
+			// the readLine method returns null when there is nothing else to
+			// read.
+			while ((line = bufferedReader.readLine()) != null) {
+				s += line;
 			}
-			isr.close();
 
 			JSONObject jsonObject = new JSONObject(s);
 			storeItemsJSONArray = new JSONArray(
@@ -564,6 +565,7 @@ public class MainActivity extends FragmentActivity implements
 
 				storeItems.add(storeItem);
 			}
+
 		} catch (IOException ioe) {
 			Log.d("initStoreItemsArray", ioe.getLocalizedMessage());
 		} catch (Exception e) {
@@ -769,11 +771,15 @@ public class MainActivity extends FragmentActivity implements
 		 */
 		File file = getBaseContext().getFileStreamPath("store_items.json");
 		if (file.exists()) {
-			initShoppingItemsArray();
+			initStoresArray();
 			initShoppingItemsCategoriesArray();
 			initShoppingItemsUnitArray();
+
+			// These are the heave loader that delay our application startup
+			// time by 15s.
+			initShoppingItemsArray();
 			initStoreItemsArray();
-			initStoresArray();
+
 			combineShoppingItemWithStoreItems();
 		} else {
 			syncFromServer();

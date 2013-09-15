@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 
+import org.apache.commons.lang3.text.WordUtils;
+
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.graphics.drawable.Drawable;
@@ -16,14 +18,10 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.AutoCompleteTextView;
 import android.widget.Filter;
 import android.widget.Filterable;
 import android.widget.ImageView;
 import android.widget.TextView;
-
-import org.apache.commons.*;
-import org.apache.commons.lang3.text.WordUtils;
 
 public class StoreItemsArrayAdapter extends ArrayAdapter<StoreItem> implements
 		OnClickListener, Filterable {
@@ -31,6 +29,7 @@ public class StoreItemsArrayAdapter extends ArrayAdapter<StoreItem> implements
 	private ArrayList<StoreItem> storeItems;
 	private ArrayList<StoreItem> backupStoreItems;
 	private ItemsFilter mFilter;
+	private Drawable d;
 
 	public StoreItemsArrayAdapter(Activity context,
 			ArrayList<StoreItem> storeItems) {
@@ -60,7 +59,7 @@ public class StoreItemsArrayAdapter extends ArrayAdapter<StoreItem> implements
 		public TextView itemUnitTextView;
 		public TextView itemSizeTextView;
 		public TextView itemLastUpdatedTextView;
-		
+
 		// We are going to keep a set of strings per viewcontainer that we can
 		// use later to update our storeItem array
 		public String itemName;
@@ -142,7 +141,7 @@ public class StoreItemsArrayAdapter extends ArrayAdapter<StoreItem> implements
 		viewContainer.itemSize = this.getItem(position).getQuantity();
 		viewContainer.itemUnit = this.getItem(position).getShoppingItemUnit();
 		viewContainer.itemLastUpdated = this.getItem(position).getUpdated();
-		
+
 		/*
 		 * Load images for shopping items from assests folder
 		 */
@@ -153,7 +152,7 @@ public class StoreItemsArrayAdapter extends ArrayAdapter<StoreItem> implements
 					this.getItem(position).getShoppingItemImageLocation()
 							.replaceFirst("/", ""));
 			// load image as Drawable
-			Drawable d = Drawable.createFromStream(ims, null);
+			d = Drawable.createFromStream(ims, null);
 			// set image to ImageView
 			viewContainer.imageView.setImageDrawable(d);
 		} catch (IOException ex) {
@@ -186,7 +185,8 @@ public class StoreItemsArrayAdapter extends ArrayAdapter<StoreItem> implements
 		UpdateStoreItemDialogFragment updateStoreItemFragmentDialog = new UpdateStoreItemDialogFragment();
 
 		updateStoreItemFragmentDialog.setCancelable(true);
-		updateStoreItemFragmentDialog.setDialogTitle("Update:"+itemDescription);
+		updateStoreItemFragmentDialog.setDialogTitle("Update:"
+				+ itemDescription);
 		updateStoreItemFragmentDialog.setItemUnitText(itemUnit);
 		updateStoreItemFragmentDialog.setItemName(itemName);
 		updateStoreItemFragmentDialog.setItemDescription(itemDescription);
@@ -262,8 +262,8 @@ public class StoreItemsArrayAdapter extends ArrayAdapter<StoreItem> implements
 				}
 
 				// Set and return
-					results.values = newItems;
-					results.count = newItems.size();
+				results.values = newItems;
+				results.count = newItems.size();
 			}
 			return results;
 		}
