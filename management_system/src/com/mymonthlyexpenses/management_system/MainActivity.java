@@ -25,8 +25,10 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
@@ -276,17 +278,15 @@ public class MainActivity extends FragmentActivity implements
 		// Handle item selection
 		switch (item.getItemId()) {
 		case R.id.sync_from_server:
-			showSyncConfirmationDialog();
-			if (syncConfirmationFlag)
-				syncFromServer();
+			syncFromServer();
 			return true;
 		case R.id.sync_to_server:
-			showSyncConfirmationDialog();
-			if (syncConfirmationFlag)
-				new SyncToServerTask()
-						.execute(
-								"/data/data/com.mymonthlyexpenses.management_system/files/store_items.json",
-								"http://192.168.1.124/management/syncToServer.php");
+			syncToServer();
+			/*
+			 * new SyncToServerTask() .execute(
+			 * "/data/data/com.mymonthlyexpenses.management_system/files/store_items.json"
+			 * , "http://192.168.1.124/management/syncToServer.php");
+			 */
 			return true;
 		default:
 			return super.onOptionsItemSelected(item);
@@ -294,75 +294,150 @@ public class MainActivity extends FragmentActivity implements
 	}
 
 	private void syncFromServer() {
-		/*
-		 * new ReadAndSaveManagementJSONFeedTask() .execute(
-		 * "shopping_items.json",
-		 * "http://192.168.1.124/management/manageStoreItemController.php?sync_shopping_items=from_server"
-		 * ); new ReadAndSaveManagementJSONFeedTask() .execute(
-		 * "shopping_item_category.json",
-		 * "http://192.168.1.124/management/manageStoreItemController.php?sync_shopping_item_category=from_server"
-		 * ); new ReadAndSaveManagementJSONFeedTask() .execute( "stores.json",
-		 * "http://192.168.1.124/management/manageStoreItemController.php?sync_stores=from_server"
-		 * ); new ReadAndSaveManagementJSONFeedTask() .execute(
-		 * "store_items.json",
-		 * "http://192.168.1.124/management/manageStoreItemController.php?sync_store_items=from_server"
-		 * ); new ReadAndSaveManagementJSONFeedTask() .execute(
-		 * "shopping_items_unit.json",
-		 * "http://192.168.1.124/management/manageStoreItemController.php?sync_shopping_item_unit=from_server"
-		 * );
-		 */
+		AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
+		// set the title of the Alert Dialog
+		alertDialogBuilder.setTitle("Sync Data?");
 
-		AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
+		alertDialogBuilder.setMessage("Click yes to sync");
 
-			@Override
-			protected void onPreExecute() {
+		alertDialogBuilder.setCancelable(false);
 
-				pd = new ProgressDialog(MainActivity.this);
-				pd.setTitle("Processing...");
-				pd.setMessage("Please wait.");
-				pd.setCancelable(false);
-				pd.setIndeterminate(true);
-				pd.show();
-			}
+		alertDialogBuilder.setPositiveButton("Yes",
+				new DialogInterface.OnClickListener() {
 
-			@Override
-			protected Void doInBackground(Void... arg0) {
-				try {
-					readAndSaveJSONFeed(
-							"shopping_items.json",
-							"http://192.168.1.124/management/manageStoreItemController.php?sync_shopping_items=from_server");
+					public void onClick(DialogInterface dialog, int id) {
 
-					readAndSaveJSONFeed(
-							"shopping_item_category.json",
-							"http://192.168.1.124/management/manageStoreItemController.php?sync_shopping_item_category=from_server");
+						AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
 
-					readAndSaveJSONFeed(
-							"stores.json",
-							"http://192.168.1.124/management/manageStoreItemController.php?sync_stores=from_server");
+							@Override
+							protected void onPreExecute() {
 
-					readAndSaveJSONFeed(
-							"store_items.json",
-							"http://192.168.1.124/management/manageStoreItemController.php?sync_store_items=from_server");
+								pd = new ProgressDialog(MainActivity.this);
+								pd.setTitle("Processing...");
+								pd.setMessage("Please wait.");
+								pd.setCancelable(false);
+								pd.setIndeterminate(true);
+								pd.show();
+							}
 
-					readAndSaveJSONFeed(
-							"shopping_items_unit.json",
-							"http://192.168.1.124/management/manageStoreItemController.php?sync_shopping_item_unit=from_server");
-				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				return null;
-			}
+							@Override
+							protected Void doInBackground(Void... arg0) {
+								try {
+									readAndSaveJSONFeed(
+											"shopping_items.json",
+											"http://192.168.1.124/management/manageStoreItemController.php?sync_shopping_items=from_server");
 
-			@Override
-			protected void onPostExecute(Void result) {
-				if (pd != null) {
-					pd.dismiss();
-				}
-			}
+									readAndSaveJSONFeed(
+											"shopping_item_category.json",
+											"http://192.168.1.124/management/manageStoreItemController.php?sync_shopping_item_category=from_server");
 
-		};
-		task.execute((Void[]) null);
+									readAndSaveJSONFeed(
+											"stores.json",
+											"http://192.168.1.124/management/manageStoreItemController.php?sync_stores=from_server");
+
+									readAndSaveJSONFeed(
+											"store_items.json",
+											"http://192.168.1.124/management/manageStoreItemController.php?sync_store_items=from_server");
+
+									readAndSaveJSONFeed(
+											"shopping_items_unit.json",
+											"http://192.168.1.124/management/manageStoreItemController.php?sync_shopping_item_unit=from_server");
+								} catch (Exception e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								}
+								return null;
+							}
+
+							@Override
+							protected void onPostExecute(Void result) {
+								if (pd != null) {
+									pd.dismiss();
+								}
+							}
+
+						};
+						task.execute((Void[]) null);
+					}
+
+				});
+
+		alertDialogBuilder.setNegativeButton("No",
+				new DialogInterface.OnClickListener() {
+
+					public void onClick(DialogInterface dialog, int id) {
+						dialog.cancel();
+					}
+
+				});
+
+		AlertDialog alertDialog = alertDialogBuilder.create();
+
+		alertDialog.show();
+
+	}
+
+	private void syncToServer() {
+		AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
+		// set the title of the Alert Dialog
+		alertDialogBuilder.setTitle("Sync Data?");
+
+		alertDialogBuilder.setMessage("Click yes to sync");
+
+		alertDialogBuilder.setCancelable(false);
+
+		alertDialogBuilder.setPositiveButton("Yes",
+				new DialogInterface.OnClickListener() {
+
+					public void onClick(DialogInterface dialog, int id) {
+
+						AsyncTask<String, Void, Void> task = new AsyncTask<String, Void, Void>() {
+
+							@Override
+							protected void onPreExecute() {
+								pd = new ProgressDialog(MainActivity.this);
+								pd.setTitle("Processing...");
+								pd.setMessage("Please wait.");
+								pd.setCancelable(false);
+								pd.setIndeterminate(true);
+								pd.show();
+							}
+
+							@Override
+							protected Void doInBackground(String... params) {
+								uploadFile(params[0], params[1]);
+
+								return null;
+							}
+
+							@Override
+							protected void onPostExecute(Void result) {
+								if (pd != null) {
+									pd.dismiss();
+								}
+							}
+
+						};
+						task.execute(
+								"/data/data/com.mymonthlyexpenses.management_system/files/store_items.json",
+								"http://192.168.1.124/management/syncToServer.php");
+					}
+
+				});
+
+		alertDialogBuilder.setNegativeButton("No",
+				new DialogInterface.OnClickListener() {
+
+					public void onClick(DialogInterface dialog, int id) {
+						dialog.cancel();
+					}
+
+				});
+
+		AlertDialog alertDialog = alertDialogBuilder.create();
+
+		alertDialog.show();
+
 	}
 
 	@Override
@@ -990,7 +1065,7 @@ public class MainActivity extends FragmentActivity implements
 		}
 	}
 
-	private void showSyncConfirmationDialog() {
+	private void showSyncConfirmationDialog(int menuItemId) {
 		FragmentManager fragmentManager = getSupportFragmentManager();
 		SyncConfirmationDialogFragment yesnoDialog = new SyncConfirmationDialogFragment();
 		yesnoDialog.setCancelable(false);
