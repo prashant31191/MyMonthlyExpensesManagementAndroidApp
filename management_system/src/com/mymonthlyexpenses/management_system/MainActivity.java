@@ -27,22 +27,23 @@ import org.json.JSONObject;
 
 import android.app.ProgressDialog;
 import android.content.Context;
-import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Handler;
 import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.FragmentManager;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Spinner;
+import android.widget.Toast;
 
+import com.mymonthlyexpenses.management_system.SyncConfirmationDialogFragment.SyncConfirmationDialogFragmentListener;
 import com.mymonthlyexpenses.management_system.UpdateStoreItemDialogFragment.UpdateStoreItemDialogListener;
 
 public class MainActivity extends FragmentActivity implements
-		UpdateStoreItemDialogListener {
+		UpdateStoreItemDialogListener, SyncConfirmationDialogFragmentListener {
 
 	/*
 	 * We are going to use a set of helper arrays to hold our information
@@ -65,7 +66,7 @@ public class MainActivity extends FragmentActivity implements
 
 	private static ProgressDialog pd;
 	private Context context;
-	
+
 	public Boolean readAndSaveJSONFeed(String jsonFileName, String URL) {
 		StringBuilder stringBuilder = new StringBuilder();
 		HttpClient httpClient = new DefaultHttpClient();
@@ -275,9 +276,11 @@ public class MainActivity extends FragmentActivity implements
 		// Handle item selection
 		switch (item.getItemId()) {
 		case R.id.sync_from_server:
+			showSyncConfirmationDialog();
 			syncFromServer();
 			return true;
 		case R.id.sync_to_server:
+			showSyncConfirmationDialog();
 			new SyncToServerTask()
 					.execute(
 							"/data/data/com.mymonthlyexpenses.management_system/files/store_items.json",
@@ -311,6 +314,7 @@ public class MainActivity extends FragmentActivity implements
 
 			@Override
 			protected void onPreExecute() {
+
 				pd = new ProgressDialog(MainActivity.this);
 				pd.setTitle("Processing...");
 				pd.setMessage("Please wait.");
@@ -750,9 +754,10 @@ public class MainActivity extends FragmentActivity implements
 				.getSelectedItem().toString());
 		String storeId = getStoreIdBasedOnName(storesSpinner.getSelectedItem()
 				.toString());
-		
-		String currentDateTimeString = DateFormat.getDateTimeInstance().format(new Date());
-		
+
+		String currentDateTimeString = DateFormat.getDateTimeInstance().format(
+				new Date());
+
 		// Find our item in the storeItemArrayAdapter and update its price and
 		// size values. We are using the item description since it is more
 		// unique than its name, which we might
@@ -958,7 +963,7 @@ public class MainActivity extends FragmentActivity implements
 	}
 
 	private class SyncToServerTask extends AsyncTask<String, Void, Void> {
-		
+
 		@Override
 		protected void onPreExecute() {
 			pd = new ProgressDialog(MainActivity.this);
@@ -968,11 +973,11 @@ public class MainActivity extends FragmentActivity implements
 			pd.setIndeterminate(true);
 			pd.show();
 		}
-		
+
 		@Override
 		protected Void doInBackground(String... params) {
 			uploadFile(params[0], params[1]);
-			
+
 			return null;
 		}
 
@@ -981,5 +986,19 @@ public class MainActivity extends FragmentActivity implements
 				pd.dismiss();
 			}
 		}
+	}
+
+	private void showSyncConfirmationDialog() {
+		FragmentManager fragmentManager = getSupportFragmentManager();
+		SyncConfirmationDialogFragment yesnoDialog = new SyncConfirmationDialogFragment();
+		yesnoDialog.setCancelable(false);
+		yesnoDialog.setDialogTitle("Status change");
+		yesnoDialog.show(fragmentManager, "yes/no dialog");
+	}
+
+	@Override
+	public void onFinishSyncConfirmationDialog(boolean state) {
+		Toast.makeText(this, "Returned from dialog: " + state,
+				Toast.LENGTH_SHORT).show();
 	}
 }
