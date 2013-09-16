@@ -16,6 +16,8 @@ public class StoreItem implements Comparable<StoreItem> {
 	private String quantity;
 	private String updated;
 
+	private boolean filtered = false;
+
 	/**
 	 * @return the shoppingItemDescription
 	 */
@@ -227,6 +229,14 @@ public class StoreItem implements Comparable<StoreItem> {
 
 	public String toString() {
 		return this.shoppingItemName;
+	}
+
+	public boolean isFiltered() {
+		return filtered;
+	}
+
+	public void setFiltered(boolean filtered) {
+		this.filtered = filtered;
 	}
 
 	/*

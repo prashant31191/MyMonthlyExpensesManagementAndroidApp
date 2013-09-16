@@ -253,12 +253,12 @@ public class StoreItemsArrayAdapter extends ArrayAdapter<StoreItem> implements
 						newItems.add(item);
 					} else {
 					} /*
-					 * This is option and taken from the source of ArrayAdapter
-					 * final String[] words = itemName.split(" "); final int
-					 * wordCount = words.length; for (int k = 0; k < wordCount;
-					 * k++) { if (words[k].startsWith(prefixString)) {
-					 * newItems.add(item); break; } } }
-					 */
+						* This is option and taken from the source of ArrayAdapter
+						* final String[] words = itemName.split(" "); final int
+						* wordCount = words.length; for (int k = 0; k < wordCount;
+						* k++) { if (words[k].startsWith(prefixString)) {
+						* newItems.add(item); break; } } }
+						*/
 				}
 
 				// Set and return

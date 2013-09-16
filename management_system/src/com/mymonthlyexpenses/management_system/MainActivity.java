@@ -12,7 +12,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 
@@ -27,6 +28,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import android.app.AlertDialog;
+import android.app.DatePickerDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -39,13 +41,15 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
+import android.widget.DatePicker;
 import android.widget.Spinner;
 
 import com.mymonthlyexpenses.management_system.SyncConfirmationDialogFragment.SyncConfirmationDialogFragmentListener;
 import com.mymonthlyexpenses.management_system.UpdateStoreItemDialogFragment.UpdateStoreItemDialogListener;
 
 public class MainActivity extends FragmentActivity implements
-		UpdateStoreItemDialogListener, SyncConfirmationDialogFragmentListener {
+		UpdateStoreItemDialogListener, SyncConfirmationDialogFragmentListener,
+		DatePickerDialog.OnDateSetListener {
 
 	/*
 	 * We are going to use a set of helper arrays to hold our information
@@ -67,7 +71,6 @@ public class MainActivity extends FragmentActivity implements
 	public StoreItemsArrayAdapter storeItemsArrayAdapter;
 
 	private static ProgressDialog pd;
-	private Context context;
 	private boolean firsTimeSync = true;;
 
 	public Boolean readAndSaveJSONFeed(String jsonFileName, String URL) {
@@ -167,8 +170,6 @@ public class MainActivity extends FragmentActivity implements
 				getItemsBasedOnCategoryAndStore(storeItems, selectedCategoryId,
 						selectedStoreId));
 
-		// storeItemsArrayAdapter.setNotifyOnChange(true);
-
 		categoriesSpinner
 				.setOnItemSelectedListener(new CategoriesSpinnerOnItemSelectedListener(
 						this, storeItemsArrayAdapter));
@@ -208,6 +209,7 @@ public class MainActivity extends FragmentActivity implements
 		 */
 		// Go over all shoppingItmes
 		boolean exists = false;
+		boolean filtered = false;
 
 		for (ShoppingItem shoppingItem : shoppingItems) {
 			// If a shopping item is in our category
@@ -216,14 +218,24 @@ public class MainActivity extends FragmentActivity implements
 				// I am going to start by assuming that this shopping items does
 				// not exist in the store items array
 				exists = false;
-
+				filtered = false;
+				// Look for the shopping item in the store items array
 				for (StoreItem storeItem : storeItems) {
+					// First check if this item is not filtered
+
 					if ((storeItem.getShoppingItemId().equalsIgnoreCase(
 							shoppingItem.getId()) && (storeItem.getStoreId()
 							.equalsIgnoreCase(selectedStoreId)))) {
-						storeItemsInCategoryAndStore.add(storeItem);
-						exists = true;
-						break;
+						if (!storeItem.isFiltered()) {
+							storeItemsInCategoryAndStore.add(storeItem);
+
+							exists = true;
+							break;
+						} else {
+							exists = true;
+							filtered = true;
+							break;
+						}
 					}
 				}
 
@@ -232,7 +244,7 @@ public class MainActivity extends FragmentActivity implements
 				// Than I am going to create a new store item based on the
 				// shopping item and add it to
 				// The storeItemsInCategoryAndStore array.
-				if (!exists) {
+				if ((!exists) && (!filtered)) {
 					StoreItem newStoreItem = new StoreItem();
 					newStoreItem.setShoppingItemCategoryId(shoppingItem
 							.getCategoryId());
@@ -248,21 +260,13 @@ public class MainActivity extends FragmentActivity implements
 					newStoreItem
 							.setShoppingItemUnit(getShoppingItemUnitFromUnitId(shoppingItem
 									.getShoppingItemUnitId()));
-					newStoreItem.setUpdated("0");
+					newStoreItem.setUpdated("0000-00-00 00:00:00");
 
 					storeItemsInCategoryAndStore.add(newStoreItem);
 				}
 
 			}
 		}
-
-		/*
-		 * old code StoreItem[] itemArray = new
-		 * StoreItem[storeItemsInCategoryAndStore .size()]; StoreItem[]
-		 * returnedArray = storeItemsInCategoryAndStore .toArray(itemArray);
-		 * 
-		 * return returnedArray;
-		 */
 
 		return storeItemsInCategoryAndStore;
 	}
@@ -283,11 +287,9 @@ public class MainActivity extends FragmentActivity implements
 			return true;
 		case R.id.sync_to_server:
 			syncToServer();
-			/*
-			 * new SyncToServerTask() .execute(
-			 * "/data/data/com.mymonthlyexpenses.management_system/files/store_items.json"
-			 * , "http://192.168.1.124/management/syncToServer.php");
-			 */
+			return true;
+		case R.id.add_filter:
+			addFilter();
 			return true;
 		default:
 			return super.onOptionsItemSelected(item);
@@ -304,7 +306,6 @@ public class MainActivity extends FragmentActivity implements
 				startSyncFromServerAsyncTask();
 				firsTimeSync = false;
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		} else {
@@ -802,8 +803,9 @@ public class MainActivity extends FragmentActivity implements
 		String storeId = getStoreIdBasedOnName(storesSpinner.getSelectedItem()
 				.toString());
 
-		String currentDateTimeString = DateFormat.getDateTimeInstance().format(
-				new Date());
+		// Create the MySQL datetime string
+		SimpleDateFormat fmt = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		String currentDateTimeString = fmt.format(new Date());
 
 		// Create the MySQL datetime string
 		/*
@@ -1108,5 +1110,85 @@ public class MainActivity extends FragmentActivity implements
 
 		};
 		task.execute((Void[]) null);
+	}
+
+	/*
+	 * This will allow us to filter our store items to only show items which
+	 * have not been update before a specific date
+	 */
+	private void addFilter() {
+
+		// Show a date picker dialog
+		FragmentManager fragementManager = ((FragmentActivity) this)
+				.getSupportFragmentManager();
+		AddFilterDialogFragment addFilterDialogFragment = new AddFilterDialogFragment();
+
+		addFilterDialogFragment.setCancelable(true);
+		addFilterDialogFragment.setDialogTitle("Add Filter");
+		addFilterDialogFragment.show(fragementManager, "datePicker");
+	}
+
+	// Once the user has chosen a date for the filter we need to filer our
+	// StoreItemArrayAdapter to only show items where the update value of the
+	// item is older than the chosen date
+	public void onDateSet(DatePicker view, int year, int month, int day) {
+
+		storeItemsArrayAdapter.setStoreItem(getItemsBasedOnDate(storeItems,
+				year, month, day));
+
+		String selectedCategoryId = getCategoryIdBasedOnName(categoriesSpinner
+				.getSelectedItem().toString());
+		String selectedStoreId = getStoreIdBasedOnName(storesSpinner
+				.getSelectedItem().toString());
+
+		storeItemsArrayAdapter.setStoreItem(getItemsBasedOnCategoryAndStore(
+				storeItems, selectedCategoryId, selectedStoreId));
+
+		storeItemsArrayAdapter.notifyDataSetChanged();
+	}
+
+	/**
+	 * @param storeItems
+	 * @param year
+	 * @param month
+	 * @param day
+	 * @return
+	 */
+	private ArrayList<StoreItem> getItemsBasedOnDate(
+			ArrayList<StoreItem> storeItems, int year, int month, int day) {
+
+		ArrayList<StoreItem> storeItemsFilteredOnDate = new ArrayList<StoreItem>();
+
+		SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+		String chosenDate = Integer.toString(year) + "-"
+				+ Integer.toString(month + 1) + "-" + Integer.toString(day)
+				+ " 00:00:00";
+
+		Date filterDate;
+
+		try {
+			filterDate = format.parse(chosenDate);
+
+			for (StoreItem storeItem : storeItems) {
+				Date storeItemLastUpdate = format.parse(storeItem.getUpdated());
+
+				if (storeItemLastUpdate.after(filterDate)) {
+					storeItem.setFiltered(true);
+
+					Log.d("getItemsBasedOnDate", "Store Item Last Updated: "
+							+ storeItemLastUpdate.toString());
+
+				} else {
+					storeItem.setFiltered(false);
+				}
+			}
+
+		} catch (ParseException e) {
+			Log.e("getItemsBasedOnDate", e.getLocalizedMessage());
+		}
+
+		// return storeItemsFilteredOnDate;
+		return storeItems;
 	}
 }
