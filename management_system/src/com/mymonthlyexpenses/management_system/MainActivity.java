@@ -150,6 +150,7 @@ public class MainActivity extends FragmentActivity implements
 		storeItemsArrayAdapter = new StoreItemsArrayAdapter(this,
 				getItemsBasedOnCategoryAndStore(storeItems, selectedCategoryId,
 						selectedStoreId));
+
 		// Init our one and only StoreItemsArrayAdapter
 		searchStoreItemsArrayAdapter = new StoreItemsArrayAdapter(this,
 				getItemsBasedOnStore(storeItems, selectedStoreId));
@@ -299,21 +300,6 @@ public class MainActivity extends FragmentActivity implements
 	}
 
 	private void syncFromServer() {
-		/*
-		// If this is the first time the application is loaded we need to run
-		// without an alert dialog
-		File file = getBaseContext().getFileStreamPath("store_items.json");
-		if (!file.exists()) {
-			// Since you cant run any network methods in the UI thread we must
-			// create a new thread for this sync
-			try {
-				startSyncFromServerAsyncTask();
-				firsTimeSync = false;
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		} else {
-		*/
 		AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
 		// set the title of the Alert Dialog
 		alertDialogBuilder.setTitle("Sync Data?");
@@ -1093,25 +1079,24 @@ public class MainActivity extends FragmentActivity implements
 				try {
 					readAndSaveJSONFeed(
 							"shopping_items.json",
-							"http://192.168.1.124/management/manageStoreItemController.php?sync_shopping_items=from_server");
+							"http://192.168.1.124/management/managementController.php?sync_shopping_items=from_server");
 
 					readAndSaveJSONFeed(
 							"shopping_item_category.json",
-							"http://192.168.1.124/management/manageStoreItemController.php?sync_shopping_item_category=from_server");
+							"http://192.168.1.124/management/managementController.php?sync_shopping_item_category=from_server");
 
 					readAndSaveJSONFeed(
 							"stores.json",
-							"http://192.168.1.124/management/manageStoreItemController.php?sync_stores=from_server");
+							"http://192.168.1.124/management/managementController.php?sync_stores=from_server");
 
 					readAndSaveJSONFeed(
 							"store_items.json",
-							"http://192.168.1.124/management/manageStoreItemController.php?sync_store_items=from_server");
+							"http://192.168.1.124/management/managementController.php?sync_store_items=from_server");
 
 					readAndSaveJSONFeed(
 							"shopping_items_unit.json",
-							"http://192.168.1.124/management/manageStoreItemController.php?sync_shopping_item_unit=from_server");
+							"http://192.168.1.124/management/managementController.php?sync_shopping_item_unit=from_server");
 				} catch (Exception e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 				return null;
@@ -1122,6 +1107,32 @@ public class MainActivity extends FragmentActivity implements
 				if (pd != null) {
 					pd.dismiss();
 				}
+
+				// Refresh our store items
+				initStoreItemsArray();
+
+				// Refresh our ArrayAdapter
+				String selectedStore = storesSpinner.getSelectedItem()
+						.toString();
+				String selectedCategory = categoriesSpinner.getSelectedItem()
+						.toString();
+				String selectedStoreId = MainActivity
+						.getStoreIdBasedOnName(selectedStore);
+				String selectedCategoryId = MainActivity
+						.getCategoryIdBasedOnName(selectedCategory);
+
+				// Once for the main array adapter
+				storeItemsArrayAdapter
+						.setStoreItem(getItemsBasedOnCategoryAndStore(
+								storeItems, selectedCategoryId, selectedStoreId));
+				storeItemsArrayAdapter.notifyDataSetChanged();
+
+				// And once for the serach array adapter
+				searchStoreItemsArrayAdapter
+						.setStoreItem(getItemsBasedOnCategoryAndStore(
+								storeItems, selectedCategoryId, selectedStoreId));
+				searchStoreItemsArrayAdapter.notifyDataSetChanged();
+
 			}
 
 		};
