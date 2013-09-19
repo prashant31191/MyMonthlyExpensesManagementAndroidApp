@@ -1,10 +1,16 @@
 package com.mymonthlyexpenses.management_system;
 
+import java.io.IOException;
+import java.io.InputStream;
+
 import android.app.Activity;
+import android.graphics.drawable.Drawable;
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.AutoCompleteTextView;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.Spinner;
 
@@ -13,7 +19,7 @@ public class StoresSpinnerOnItemSelectedListener implements
 	private StoreItemsArrayAdapter adapter;
 	private ListView myList;
 	private AutoCompleteTextView searchAutoComplete;
-	
+
 	private final Activity context;
 
 	public StoresSpinnerOnItemSelectedListener(Activity context,
@@ -22,29 +28,49 @@ public class StoresSpinnerOnItemSelectedListener implements
 		this.context = context;
 		myList = (ListView) (context.findViewById(android.R.id.list));
 		myList.setAdapter(adapter);
-		
-		searchAutoComplete = (AutoCompleteTextView) context.findViewById(R.id.autoCompleteSearchView);
+
+		searchAutoComplete = (AutoCompleteTextView) context
+				.findViewById(R.id.autoCompleteSearchView);
 	}
 
 	@Override
 	public void onItemSelected(AdapterView<?> parent, View view, int pos,
 			long id) {
 
-			Spinner categoriesSpinner = (Spinner) view.getRootView()
-					.findViewById(R.id.categoriesSpinner);
+		Spinner categoriesSpinner = (Spinner) view.getRootView().findViewById(
+				R.id.categoriesSpinner);
 
-			String selectedCategoryId = MainActivity
-					.getCategoryIdBasedOnName(categoriesSpinner
-							.getSelectedItem().toString());
+		String selectedCategoryId = MainActivity
+				.getCategoryIdBasedOnName(categoriesSpinner.getSelectedItem()
+						.toString());
 
-			String selectedStoreId = MainActivity.getStoreIdBasedOnName(parent
-					.getItemAtPosition(pos).toString());
-			
-			adapter.setStoreItem(MainActivity.getItemsBasedOnCategoryAndStore(
-					MainActivity.storeItems, selectedCategoryId,
-					selectedStoreId));
-			
-			adapter.notifyDataSetChanged();
+		String selectedStoreId = MainActivity.getStoreIdBasedOnName(parent
+				.getItemAtPosition(pos).toString());
+
+		adapter.setStoreItem(MainActivity.getItemsBasedOnCategoryAndStore(
+				MainActivity.storeItems, selectedCategoryId, selectedStoreId));
+
+		adapter.notifyDataSetChanged();
+
+		/*
+		 * Load images for shopping items from assests folder
+		 */
+
+		try {
+			// get input stream
+			InputStream ims = context.getAssets().open(
+					MainActivity.getStoreImageLocationByStoreName(
+							parent.getItemAtPosition(pos).toString())
+							.replaceFirst("/", ""));
+			// load image as Drawable
+			Drawable d = Drawable.createFromStream(ims, null);
+			// set image to ImageView
+			((ImageView) context.findViewById(R.id.storeImageView))
+					.setImageDrawable(d);
+
+		} catch (IOException ex) {
+			Log.d("onCreate", ex.getLocalizedMessage());
+		}
 
 	}
 

@@ -32,6 +32,7 @@ import android.app.DatePickerDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
@@ -42,6 +43,7 @@ import android.view.MenuItem;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.DatePicker;
+import android.widget.ImageView;
 import android.widget.Spinner;
 
 import com.mymonthlyexpenses.management_system.SyncConfirmationDialogFragment.SyncConfirmationDialogFragmentListener;
@@ -71,7 +73,7 @@ public class MainActivity extends FragmentActivity implements
 	public StoreItemsArrayAdapter storeItemsArrayAdapter;
 
 	private static ProgressDialog pd;
-	private boolean firsTimeSync = true;;
+	private boolean firsTimeSync = true;
 
 	public Boolean readAndSaveJSONFeed(String jsonFileName, String URL) {
 		StringBuilder stringBuilder = new StringBuilder();
@@ -128,19 +130,6 @@ public class MainActivity extends FragmentActivity implements
 		return true;
 	}
 
-	private class ReadAndSaveManagementJSONFeedTask extends
-			AsyncTask<String, Void, Boolean> {
-
-		@Override
-		protected Boolean doInBackground(String... urls) {
-			return readAndSaveJSONFeed(urls[0], urls[1]);
-		}
-
-		protected void onPostExecute(String result) {
-
-		}
-	}
-
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
@@ -183,6 +172,25 @@ public class MainActivity extends FragmentActivity implements
 		AutoCompleteTextView serachTextView = (AutoCompleteTextView) findViewById(R.id.autoCompleteSearchView);
 		serachTextView.setThreshold(3);
 		serachTextView.setAdapter(storeItemsArrayAdapter);
+
+		/*
+		 * Load images for shopping items from assests folder
+		 */
+
+		try {
+			// get input stream
+			InputStream ims = this.getAssets().open(
+					getStoreImageLocationByStoreName(selectedStore)
+							.replaceFirst("/", ""));
+			// load image as Drawable
+			Drawable d = Drawable.createFromStream(ims, null);
+			// set image to ImageView
+			((ImageView) this.findViewById(R.id.storeImageView))
+					.setImageDrawable(d);
+
+		} catch (IOException ex) {
+			Log.d("onCreate", ex.getLocalizedMessage());
+		}
 
 	}
 
@@ -498,6 +506,8 @@ public class MainActivity extends FragmentActivity implements
 				s += line;
 			}
 
+			bufferedReader.close();
+
 			JSONObject jsonObject = new JSONObject(s);
 			JSONArray jsonArray = new JSONArray(
 					jsonObject.getString("shopping_items"));
@@ -546,6 +556,8 @@ public class MainActivity extends FragmentActivity implements
 			while ((line = bufferedReader.readLine()) != null) {
 				s += line;
 			}
+
+			bufferedReader.close();
 
 			JSONObject jsonObject = new JSONObject(s);
 			storeItemsJSONArray = new JSONArray(
@@ -1019,40 +1031,6 @@ public class MainActivity extends FragmentActivity implements
 		}
 	}
 
-	private class SyncToServerTask extends AsyncTask<String, Void, Void> {
-
-		@Override
-		protected void onPreExecute() {
-			pd = new ProgressDialog(MainActivity.this);
-			pd.setTitle("Processing...");
-			pd.setMessage("Please wait.");
-			pd.setCancelable(false);
-			pd.setIndeterminate(true);
-			pd.show();
-		}
-
-		@Override
-		protected Void doInBackground(String... params) {
-			uploadFile(params[0], params[1]);
-
-			return null;
-		}
-
-		protected void onPostExecute(Void result) {
-			if (pd != null) {
-				pd.dismiss();
-			}
-		}
-	}
-
-	private void showSyncConfirmationDialog(int menuItemId) {
-		FragmentManager fragmentManager = getSupportFragmentManager();
-		SyncConfirmationDialogFragment yesnoDialog = new SyncConfirmationDialogFragment();
-		yesnoDialog.setCancelable(false);
-		yesnoDialog.setDialogTitle("Are you SURE? This will replace ALL DATA");
-		yesnoDialog.show(fragmentManager, "yes/no dialog");
-	}
-
 	@Override
 	public void onFinishSyncConfirmationDialog(boolean state) {
 
@@ -1190,5 +1168,15 @@ public class MainActivity extends FragmentActivity implements
 
 		// return storeItemsFilteredOnDate;
 		return storeItems;
+	}
+
+	public static String getStoreImageLocationByStoreName(String storeName) {
+		for (Store store : stores) {
+			if (store.getName().equalsIgnoreCase(storeName)) {
+				return store.getImageLocation();
+			}
+		}
+
+		return null;
 	}
 }
