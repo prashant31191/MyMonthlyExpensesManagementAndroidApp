@@ -108,15 +108,6 @@ public class MainActivity extends FragmentActivity implements
 		 */
 
 		try {
-			/*
-			 * FileOutputStream fOut = openFileOutput(jsonFileName,
-			 * MODE_PRIVATE);
-			 * 
-			 * OutputStreamWriter osw = new OutputStreamWriter(fOut);
-			 * 
-			 * osw.write(stringBuilder.toString()); osw.close();
-			 */
-
 			FileOutputStream outputStream;
 
 			outputStream = openFileOutput(jsonFileName, Context.MODE_PRIVATE);
@@ -308,9 +299,11 @@ public class MainActivity extends FragmentActivity implements
 	}
 
 	private void syncFromServer() {
+		/*
 		// If this is the first time the application is loaded we need to run
 		// without an alert dialog
-		if (firsTimeSync) {
+		File file = getBaseContext().getFileStreamPath("store_items.json");
+		if (!file.exists()) {
 			// Since you cant run any network methods in the UI thread we must
 			// create a new thread for this sync
 			try {
@@ -320,38 +313,39 @@ public class MainActivity extends FragmentActivity implements
 				e.printStackTrace();
 			}
 		} else {
-			AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(
-					this);
-			// set the title of the Alert Dialog
-			alertDialogBuilder.setTitle("Sync Data?");
+		*/
+		AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
+		// set the title of the Alert Dialog
+		alertDialogBuilder.setTitle("Sync Data?");
 
-			alertDialogBuilder.setMessage("Click yes to sync");
+		alertDialogBuilder.setMessage("Click yes to sync");
 
-			alertDialogBuilder.setCancelable(false);
+		alertDialogBuilder.setCancelable(false);
 
-			alertDialogBuilder.setPositiveButton("Yes",
-					new DialogInterface.OnClickListener() {
+		alertDialogBuilder.setPositiveButton("Yes",
+				new DialogInterface.OnClickListener() {
 
-						public void onClick(DialogInterface dialog, int id) {
-							startSyncFromServerAsyncTask();
-						}
+					public void onClick(DialogInterface dialog, int id) {
+						startSyncFromServerAsyncTask();
+					}
 
-					});
+				});
 
-			alertDialogBuilder.setNegativeButton("No",
-					new DialogInterface.OnClickListener() {
+		alertDialogBuilder.setNegativeButton("No",
+				new DialogInterface.OnClickListener() {
 
-						public void onClick(DialogInterface dialog, int id) {
-							dialog.cancel();
-						}
+					public void onClick(DialogInterface dialog, int id) {
+						dialog.cancel();
+					}
 
-					});
+				});
 
-			AlertDialog alertDialog = alertDialogBuilder.create();
+		AlertDialog alertDialog = alertDialogBuilder.create();
 
-			alertDialog.show();
-		}
+		alertDialog.show();
 	}
+
+	// }
 
 	private void syncToServer() {
 		AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
@@ -1155,6 +1149,9 @@ public class MainActivity extends FragmentActivity implements
 	// item is older than the chosen date
 	public void onDateSet(DatePicker view, int year, int month, int day) {
 
+		/*
+		 * First we filter the main storeItemsArrayAdapter
+		 */
 		storeItemsArrayAdapter.setStoreItem(getItemsBasedOnDate(storeItems,
 				year, month, day));
 
@@ -1167,6 +1164,18 @@ public class MainActivity extends FragmentActivity implements
 				storeItems, selectedCategoryId, selectedStoreId));
 
 		storeItemsArrayAdapter.notifyDataSetChanged();
+
+		/*
+		 * Now for the serachStoreItemsArrayAdapter
+		 */
+
+		searchStoreItemsArrayAdapter.setStoreItem(getItemsBasedOnDate(
+				storeItems, year, month, day));
+
+		searchStoreItemsArrayAdapter.setStoreItem(getItemsBasedOnStore(
+				storeItems, selectedStoreId));
+
+		searchStoreItemsArrayAdapter.notifyDataSetChanged();
 	}
 
 	/**
