@@ -52,6 +52,13 @@ public class StoresSpinnerOnItemSelectedListener implements
 
 		adapter.notifyDataSetChanged();
 
+		// Once we change a store we want to update the search box store items
+		// array adapter
+		MainActivity.searchStoreItemsArrayAdapter
+				.setStoreItem(MainActivity.getItemsBasedOnStore(
+						MainActivity.storeItems, selectedStoreId));
+		MainActivity.searchStoreItemsArrayAdapter.notifyDataSetChanged();
+
 		/*
 		 * Load images for shopping items from assests folder
 		 */

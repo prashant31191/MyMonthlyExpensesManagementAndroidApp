@@ -71,6 +71,7 @@ public class MainActivity extends FragmentActivity implements
 	public Spinner categoriesSpinner;
 
 	public StoreItemsArrayAdapter storeItemsArrayAdapter;
+	public static StoreItemsArrayAdapter searchStoreItemsArrayAdapter;
 
 	private static ProgressDialog pd;
 	private boolean firsTimeSync = true;
@@ -158,6 +159,9 @@ public class MainActivity extends FragmentActivity implements
 		storeItemsArrayAdapter = new StoreItemsArrayAdapter(this,
 				getItemsBasedOnCategoryAndStore(storeItems, selectedCategoryId,
 						selectedStoreId));
+		// Init our one and only StoreItemsArrayAdapter
+		searchStoreItemsArrayAdapter = new StoreItemsArrayAdapter(this,
+				getItemsBasedOnStore(storeItems, selectedStoreId));
 
 		categoriesSpinner
 				.setOnItemSelectedListener(new CategoriesSpinnerOnItemSelectedListener(
@@ -168,13 +172,12 @@ public class MainActivity extends FragmentActivity implements
 						this, storeItemsArrayAdapter));
 
 		// initiate search autocomplete text view
-
 		AutoCompleteTextView serachTextView = (AutoCompleteTextView) findViewById(R.id.autoCompleteSearchView);
 		serachTextView.setThreshold(3);
-		serachTextView.setAdapter(storeItemsArrayAdapter);
+		serachTextView.setAdapter(searchStoreItemsArrayAdapter);
 
 		/*
-		 * Load images for shopping items from assests folder
+		 * Load images for store from assests folder
 		 */
 
 		try {
@@ -801,7 +804,9 @@ public class MainActivity extends FragmentActivity implements
 	}
 
 	/*
-	 * Update adaper with updated store item
+	 * This is a method that is called once we come back from our item update dialog.
+	 * Everything that has to do with updating items in our ArrayAdapters, JSON files and ArryList's 
+	 * Is done here.
 	 */
 	public void onFinishInputDialog(String itemPrice, String itemSize,
 			String itemName, String itemDescription, String itemUnit) {
@@ -825,10 +830,15 @@ public class MainActivity extends FragmentActivity implements
 		 * String mysqlDateTime = fmt.format(new Date());
 		 */
 
+		/*
+		 * ArrayAdapter update section
+		 */
 		// Find our item in the storeItemArrayAdapter and update its price and
 		// size values. We are using the item description since it is more
 		// unique than its name, which we might
 		// have duplicates in our database (for good reasons).
+
+		// One time for the general storeItemArrayAdapter
 		for (int i = 0; i < storeItemsArrayAdapter.getCount(); i++) {
 			StoreItem tmpItem = storeItemsArrayAdapter.getItem(i);
 			if (tmpItem.getShoppingItemDescription().equalsIgnoreCase(
@@ -855,6 +865,37 @@ public class MainActivity extends FragmentActivity implements
 			}
 		}
 
+		// And another time for the special serachStoreItemsArrayAdapter
+		for (int i = 0; i < searchStoreItemsArrayAdapter.getCount(); i++) {
+			StoreItem tmpItem = searchStoreItemsArrayAdapter.getItem(i);
+			if (tmpItem.getShoppingItemDescription().equalsIgnoreCase(
+					itemDescription)) {
+				updatedItem = new StoreItem(tmpItem);
+				updatedItem.setPrice(itemPrice);
+				updatedItem.setQuantity(itemSize);
+				updatedItem.setUpdated(currentDateTimeString);
+
+				// Now we can update our storeItemsArrayAdapter
+				searchStoreItemsArrayAdapter.remove(tmpItem);
+				searchStoreItemsArrayAdapter.add(updatedItem);
+				searchStoreItemsArrayAdapter
+						.sort(StoreItem.StoreItemComparator);
+				searchStoreItemsArrayAdapter.notifyDataSetChanged();
+
+				// Clear the Autocomplete serach
+				((AutoCompleteTextView) this
+						.findViewById(R.id.autoCompleteSearchView)).setText("");
+				((AutoCompleteTextView) this
+						.findViewById(R.id.autoCompleteSearchView))
+						.dismissDropDown();
+
+				break;
+			}
+		}
+
+		/*
+		 * ArrayList update section
+		 */
 		// Next we need to update our static application storeItems ArrayList,
 		// but dont forget that you need to update a specific store and NOT all
 		// sotres with this item!
@@ -881,6 +922,9 @@ public class MainActivity extends FragmentActivity implements
 				storeItems.add(updatedItem);
 		}
 
+		/*
+		 * JSONArray update section
+		 */
 		// Last but not least - we need to update our store items JSONArray and
 		// save it to disk
 		try {
@@ -1178,5 +1222,74 @@ public class MainActivity extends FragmentActivity implements
 		}
 
 		return null;
+	}
+
+	public static ArrayList<StoreItem> getItemsBasedOnStore(
+			ArrayList<StoreItem> storeItems, String selectedStoreId) {
+
+		ArrayList<StoreItem> storeItemsInStore = new ArrayList<StoreItem>();
+
+		/*
+		 * Add to StoreItemsInCategoryAndStore all shopping items based on a
+		 * category and also update their prices based on the store item
+		 * information
+		 */
+		// Go over all shoppingItmes
+		boolean exists = false;
+		boolean filtered = false;
+
+		for (ShoppingItem shoppingItem : shoppingItems) {
+			// I am going to start by assuming that this shopping items does
+			// not exist in the store items array
+			exists = false;
+			filtered = false;
+			// Look for the shopping item in the store items array
+			for (StoreItem storeItem : storeItems) {
+				// First check if this item is not filtered
+
+				if ((storeItem.getShoppingItemId().equalsIgnoreCase(
+						shoppingItem.getId()) && (storeItem.getStoreId()
+						.equalsIgnoreCase(selectedStoreId)))) {
+					if (!storeItem.isFiltered()) {
+						storeItemsInStore.add(storeItem);
+
+						exists = true;
+						break;
+					} else {
+						exists = true;
+						filtered = true;
+						break;
+					}
+				}
+			}
+
+			// If I checked the shopping item against all store items and
+			// exists still equals false
+			// Than I am going to create a new store item based on the
+			// shopping item and add it to
+			// The storeItemsInCategoryAndStore array.
+			if ((!exists) && (!filtered)) {
+				StoreItem newStoreItem = new StoreItem();
+				newStoreItem.setShoppingItemCategoryId(shoppingItem
+						.getCategoryId());
+				newStoreItem.setShoppingItemId(shoppingItem.getId());
+				newStoreItem.setShoppingItemImageLocation(shoppingItem
+						.getImageLocation());
+				newStoreItem.setShoppingItemName(shoppingItem.getName());
+				newStoreItem.setShoppingItemDescription(shoppingItem
+						.getDescription());
+				newStoreItem.setStoreId(selectedStoreId);
+				newStoreItem.setPrice("Unknown at this time");
+				newStoreItem.setQuantity("Unknown at this time");
+				newStoreItem
+						.setShoppingItemUnit(getShoppingItemUnitFromUnitId(shoppingItem
+								.getShoppingItemUnitId()));
+				newStoreItem.setUpdated("0000-00-00 00:00:00");
+
+				storeItemsInStore.add(newStoreItem);
+			}
+		}
+
+		return storeItemsInStore;
 	}
 }
