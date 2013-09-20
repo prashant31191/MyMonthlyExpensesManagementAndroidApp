@@ -43,12 +43,7 @@ public class StoreItemsArrayAdapter extends ArrayAdapter<StoreItem> implements
 	public void setStoreItem(ArrayList<StoreItem> storeItems) {
 		this.storeItems.clear();
 		this.storeItems.addAll(storeItems);
-
 		this.backupStoreItems = this.storeItems;
-		/*
-		 * Old code that works this.storeItems = storeItems; this.clear();
-		 * this.addAll(storeItems);
-		 */
 	}
 
 	static class ViewContainer {

@@ -32,7 +32,7 @@ public class SplashActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_splash);
 
-		new Handler().postDelayed(new Runnable() {
+		new Handler().post(new Runnable() {
 
 			/*
 			 * Showing splash screen with a timer. This will be useful when you
@@ -48,15 +48,16 @@ public class SplashActivity extends Activity {
 						"store_items.json");
 				if (!file.exists())
 					startSyncFromServerAsyncTask();
-				/*
-				Intent i = new Intent(SplashActivity.this, MainActivity.class);
-				startActivity(i);
+				else {
+					Intent i = new Intent(SplashActivity.this,
+							MainActivity.class);
+					startActivity(i);
 
-				// close this activity
-				finish();
-				*/
+					// close this activity
+					finish();
+				}
 			}
-		}, SPLASH_TIME_OUT);
+		});
 	}
 
 	private void startSyncFromServerAsyncTask() {
