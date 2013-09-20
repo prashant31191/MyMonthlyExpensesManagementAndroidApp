@@ -14,5 +14,10 @@
     <string name="splashScreenImageContentDescriptor">splash loading image</string>
     <string name="itemImageContentDescriptor">Item Image</string>
     <string name="syncConfirmationDialogText">Are You Sure</string>
+    <string name="itemPriceTextView">Item Price</string>
+    <string name="itemSizeTextView">Item Size</string>
+    <string name="itemUnitTextView">Item Unit</string>
+    <string name="itemUpdateBtnText">Update</string>
+    <string name="companyName">www.mymonthlyexpenses.com</string>
 
 </resources>

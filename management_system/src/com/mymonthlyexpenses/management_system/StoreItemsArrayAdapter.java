@@ -10,7 +10,6 @@ import android.annotation.TargetApi;
 import android.app.Activity;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
-import android.os.Debug;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
 import android.util.Log;
@@ -224,7 +223,7 @@ public class StoreItemsArrayAdapter extends ArrayAdapter<StoreItem> implements
 
 		protected FilterResults performFiltering(CharSequence prefix) {
 			// debug
-			Debug.startMethodTracing("performingFiltering");
+			// Debug.startMethodTracing("performingFiltering");
 
 			// Initiate our results object
 			FilterResults results = new FilterResults();
@@ -267,7 +266,7 @@ public class StoreItemsArrayAdapter extends ArrayAdapter<StoreItem> implements
 			}
 
 			// debug
-			Debug.stopMethodTracing();
+			// Debug.stopMethodTracing();
 
 			return results;
 		}

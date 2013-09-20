@@ -10,7 +10,7 @@
         android:layout_height="wrap_content"
         android:paddingLeft="10dp"
         android:paddingRight="10dp"
-        android:text="Item Price" />
+        android:text="@string/itemPriceTextView" />
 
     <EditText
         android:id="@+id/txtPrice"
@@ -24,7 +24,7 @@
         android:layout_height="wrap_content"
         android:paddingLeft="10dp"
         android:paddingRight="10dp"
-        android:text="Item Size" />
+        android:text="@string/itemSizeTextView" />
 
     <EditText
         android:id="@+id/txtSize"
@@ -38,7 +38,7 @@
         android:layout_height="wrap_content"
         android:paddingLeft="10dp"
         android:paddingRight="10dp"
-        android:text="Item Unit" />
+        android:text="@string/itemUnitTextView" />
 
     <TextView
         android:id="@+id/itemUnitTextView"
@@ -52,6 +52,6 @@
         android:id="@+id/btnDone"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Update" />
+        android:text="@string/itemUpdateBtnText" />
 
 </LinearLayout>

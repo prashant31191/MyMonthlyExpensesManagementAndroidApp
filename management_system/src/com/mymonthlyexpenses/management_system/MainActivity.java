@@ -36,7 +36,6 @@ import android.content.DialogInterface;
 import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Debug;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
 import android.util.Log;
@@ -48,12 +47,10 @@ import android.widget.DatePicker;
 import android.widget.ImageView;
 import android.widget.Spinner;
 
-import com.mymonthlyexpenses.management_system.SyncConfirmationDialogFragment.SyncConfirmationDialogFragmentListener;
 import com.mymonthlyexpenses.management_system.UpdateStoreItemDialogFragment.UpdateStoreItemDialogListener;
 
 public class MainActivity extends FragmentActivity implements
-		UpdateStoreItemDialogListener, SyncConfirmationDialogFragmentListener,
-		DatePickerDialog.OnDateSetListener {
+		UpdateStoreItemDialogListener, DatePickerDialog.OnDateSetListener {
 
 	/*
 	 * We are going to use a set of helper arrays to hold our information
@@ -76,7 +73,6 @@ public class MainActivity extends FragmentActivity implements
 	public static StoreItemsArrayAdapter searchStoreItemsArrayAdapter;
 
 	private static ProgressDialog pd;
-	private boolean firsTimeSync = true;
 
 	public Boolean readAndSaveJSONFeed(String jsonFileName, String URL) {
 		StringBuilder stringBuilder = new StringBuilder();
@@ -376,9 +372,9 @@ public class MainActivity extends FragmentActivity implements
 							}
 
 						};
-
-						task.execute(
-								"/data/data/com.mymonthlyexpenses.management_system/files/store_items.json",
+						String fileLocation = getBaseContext().getFilesDir()
+								.getPath() + "/store_items.json";
+						task.execute(fileLocation,
 								"http://192.168.1.124/management/syncToServer.php");
 					}
 
@@ -475,13 +471,15 @@ public class MainActivity extends FragmentActivity implements
 		/*
 		 * Create an ArrayList of shopping item objects
 		 */
+		String fileLocation = getBaseContext().getFilesDir().getPath()
+				+ "/shopping_items.json";
+
 		try {
 			String line;
 			String s = "";
 			// wrap a BufferedReader around FileReader
-			BufferedReader bufferedReader = new BufferedReader(
-					new FileReader(
-							"/data/data/com.mymonthlyexpenses.management_system/files/shopping_items.json"));
+			BufferedReader bufferedReader = new BufferedReader(new FileReader(
+					fileLocation));
 
 			// use the readLine method of the BufferedReader to read one line at
 			// a time.
@@ -525,14 +523,16 @@ public class MainActivity extends FragmentActivity implements
 		/*
 		 * Create an ArrayList of store item objects
 		 */
+		String fileLocation = getBaseContext().getFilesDir().getPath()
+				+ "/store_items.json";
+
 		try {
 
 			String line;
 			String s = "";
 			// wrap a BufferedReader around FileReader
-			BufferedReader bufferedReader = new BufferedReader(
-					new FileReader(
-							"/data/data/com.mymonthlyexpenses.management_system/files/store_items.json"));
+			BufferedReader bufferedReader = new BufferedReader(new FileReader(
+					fileLocation));
 
 			// use the readLine method of the BufferedReader to read one line at
 			// a time.
@@ -570,7 +570,9 @@ public class MainActivity extends FragmentActivity implements
 		} catch (IOException ioe) {
 			Log.d("initStoreItemsArray", ioe.getLocalizedMessage());
 		} catch (Exception e) {
+			e.printStackTrace();
 			Log.d("initStoreItemsArray", e.getLocalizedMessage());
+			finish();
 		}
 	}
 
@@ -793,7 +795,7 @@ public class MainActivity extends FragmentActivity implements
 			String itemName, String itemDescription, String itemUnit) {
 
 		// debug
-		Debug.startMethodTracing("onFinishInputDialog");
+		// Debug.startMethodTracing("onFinishInputDialog");
 
 		// We want to make the updatedItem a local variable that we can use
 		// later to update our store items array and local JSON file
@@ -823,9 +825,8 @@ public class MainActivity extends FragmentActivity implements
 		// have duplicates in our database (for good reasons).
 
 		// One time for the general storeItemArrayAdapter
-		StoreItem tmpItem;
 		for (int i = 0; i < storeItemsArrayAdapter.getCount(); i++) {
-			tmpItem = storeItemsArrayAdapter.getItem(i);
+			StoreItem tmpItem = storeItemsArrayAdapter.getItem(i);
 			if (tmpItem.getShoppingItemDescription().equalsIgnoreCase(
 					itemDescription)) {
 				updatedItem = new StoreItem(tmpItem);
@@ -855,7 +856,7 @@ public class MainActivity extends FragmentActivity implements
 
 		// And another time for the special serachStoreItemsArrayAdapter
 		for (int i = 0; i < searchStoreItemsArrayAdapter.getCount(); i++) {
-			tmpItem = searchStoreItemsArrayAdapter.getItem(i);
+			StoreItem tmpItem = searchStoreItemsArrayAdapter.getItem(i);
 			if (tmpItem.getShoppingItemDescription().equalsIgnoreCase(
 					itemDescription)) {
 				updatedItem = new StoreItem(tmpItem);
@@ -979,7 +980,7 @@ public class MainActivity extends FragmentActivity implements
 		}
 
 		// debug
-		Debug.stopMethodTracing();
+		// Debug.stopMethodTracing();
 	}
 
 	private void updateStoreItemsJSONFile() {
@@ -1088,11 +1089,6 @@ public class MainActivity extends FragmentActivity implements
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
-	}
-
-	@Override
-	public void onFinishSyncConfirmationDialog(boolean state) {
-
 	}
 
 	private void startSyncFromServerAsyncTask() {
@@ -1233,8 +1229,6 @@ public class MainActivity extends FragmentActivity implements
 	 */
 	private ArrayList<StoreItem> getItemsBasedOnDate(
 			ArrayList<StoreItem> storeItems, int year, int month, int day) {
-
-		ArrayList<StoreItem> storeItemsFilteredOnDate = new ArrayList<StoreItem>();
 
 		SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
