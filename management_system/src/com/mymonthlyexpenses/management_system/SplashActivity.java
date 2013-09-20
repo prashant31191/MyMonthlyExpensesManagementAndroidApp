@@ -41,7 +41,6 @@ public class SplashActivity extends Activity {
 
 			@Override
 			public void run() {
-
 				/*
 				 * If we dont have a store_items.json file we need to go grab one from the server
 				 */
@@ -49,13 +48,13 @@ public class SplashActivity extends Activity {
 						"store_items.json");
 				if (!file.exists())
 					startSyncFromServerAsyncTask();
-				// This method will be executed once the timer is over
-				// Start your app main activity
+				/*
 				Intent i = new Intent(SplashActivity.this, MainActivity.class);
 				startActivity(i);
 
 				// close this activity
 				finish();
+				*/
 			}
 		}, SPLASH_TIME_OUT);
 	}
@@ -73,34 +72,44 @@ public class SplashActivity extends Activity {
 				try {
 					readAndSaveJSONFeed(
 							"shopping_items.json",
-							"http://192.168.1.124/management/manageStoreItemController.php?sync_shopping_items=from_server");
+							"http://192.168.1.124/management/managementController.php?sync_shopping_items=from_server");
 
 					readAndSaveJSONFeed(
 							"shopping_item_category.json",
-							"http://192.168.1.124/management/manageStoreItemController.php?sync_shopping_item_category=from_server");
+							"http://192.168.1.124/management/managementController.php?sync_shopping_item_category=from_server");
 
 					readAndSaveJSONFeed(
 							"stores.json",
-							"http://192.168.1.124/management/manageStoreItemController.php?sync_stores=from_server");
+							"http://192.168.1.124/management/managementController.php?sync_stores=from_server");
 
 					readAndSaveJSONFeed(
 							"store_items.json",
-							"http://192.168.1.124/management/manageStoreItemController.php?sync_store_items=from_server");
+							"http://192.168.1.124/management/managementController.php?sync_store_items=from_server");
 
 					readAndSaveJSONFeed(
 							"shopping_items_unit.json",
-							"http://192.168.1.124/management/manageStoreItemController.php?sync_shopping_item_unit=from_server");
+							"http://192.168.1.124/management/managementController.php?sync_shopping_item_unit=from_server");
 				} catch (Exception e) {
 					Log.d("startSyncFromServerAsyncTask",
 							e.getLocalizedMessage());
 				}
 				return null;
 			}
+
+			@Override
+			protected void onPostExecute(Void result) {
+				Intent i = new Intent(SplashActivity.this, MainActivity.class);
+				startActivity(i);
+
+				// close this activity
+				finish();
+			}
 		};
 		task.execute((Void[]) null);
+
 	}
 
-	public Boolean readAndSaveJSONFeed(String jsonFileName, String URL) {
+	private Boolean readAndSaveJSONFeed(String jsonFileName, String URL) {
 		StringBuilder stringBuilder = new StringBuilder();
 		HttpClient httpClient = new DefaultHttpClient();
 		HttpGet httpGet = new HttpGet(URL);

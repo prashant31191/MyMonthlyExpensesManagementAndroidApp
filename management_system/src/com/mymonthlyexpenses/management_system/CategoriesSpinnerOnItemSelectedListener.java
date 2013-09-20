@@ -15,40 +15,40 @@ public class CategoriesSpinnerOnItemSelectedListener implements
 	private ListView myList;
 	private final Activity context;
 	private AutoCompleteTextView searchAutoComplete;
-	
-	CategoriesSpinnerOnItemSelectedListener(Activity context, StoreItemsArrayAdapter adapter) {
+
+	CategoriesSpinnerOnItemSelectedListener(Activity context,
+			StoreItemsArrayAdapter adapter) {
 		this.adapter = adapter;
 		this.context = context;
 		myList = (ListView) (context.findViewById(android.R.id.list));
 		myList.setAdapter(adapter);
-		
-		searchAutoComplete = (AutoCompleteTextView) context.findViewById(R.id.autoCompleteSearchView);
+
+		searchAutoComplete = (AutoCompleteTextView) context
+				.findViewById(R.id.autoCompleteSearchView);
 	}
 
 	public void onItemSelected(AdapterView<?> parent, View view, int pos,
 			long id) {
 
-			String selectedCategoryId = MainActivity
-					.getCategoryIdBasedOnName(parent.getItemAtPosition(pos)
-							.toString());
+		String selectedCategoryId = MainActivity
+				.getCategoryIdBasedOnName(parent.getItemAtPosition(pos)
+						.toString());
 
-			Spinner storesSpinner = (Spinner) view.getRootView().findViewById(
-					R.id.storesSpinner);
+		Spinner storesSpinner = (Spinner) view.getRootView().findViewById(
+				R.id.storesSpinner);
 
-			String selectedStoreId = MainActivity
-					.getStoreIdBasedOnName(storesSpinner.getSelectedItem()
-							.toString());
-			
-			adapter.setStoreItem(MainActivity.getItemsBasedOnCategoryAndStore(
-							MainActivity.storeItems, selectedCategoryId,
-							selectedStoreId));
-			
-			adapter.notifyDataSetChanged();
+		String selectedStoreId = MainActivity
+				.getStoreIdBasedOnName(storesSpinner.getSelectedItem()
+						.toString());
+
+		adapter.setStoreItem(MainActivity.getItemsBasedOnCategoryAndStore(
+				MainActivity.storeItems, selectedCategoryId, selectedStoreId));
+
+		adapter.notifyDataSetChanged();
 
 	}
 
 	public void onNothingSelected(AdapterView<?> arg0) {
-		// TODO Auto-generated method stub
 
 	}
 

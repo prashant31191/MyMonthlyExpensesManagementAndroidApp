@@ -192,11 +192,13 @@ public class MainActivity extends FragmentActivity implements
 	@Override
 	public void onStop() {
 		super.onStop();
+		/*
 		categories.clear();
 		stores.clear();
 		shoppingItems.clear();
 		storeItems.clear();
 		shoppingItemUnits.clear();
+		*/
 	}
 
 	public static ArrayList<StoreItem> getItemsBasedOnCategoryAndStore(
@@ -762,8 +764,7 @@ public class MainActivity extends FragmentActivity implements
 
 		/*
 		 * This will only work if we already have our files from the server
-		 * therefore we have to check if the files exist, if they dont we need
-		 * to go get them from the server
+		 * therefore we have to check if the files exist
 		 */
 		File file = getBaseContext().getFileStreamPath("store_items.json");
 		if (file.exists()) {
@@ -777,10 +778,7 @@ public class MainActivity extends FragmentActivity implements
 			initStoreItemsArray();
 
 			combineShoppingItemWithStoreItems();
-		} else {
-			syncFromServer();
 		}
-
 	}
 
 	/*
