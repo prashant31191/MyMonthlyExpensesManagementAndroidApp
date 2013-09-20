@@ -10,7 +10,7 @@
         android:layout_height="wrap_content"
         android:paddingLeft="10dp"
         android:paddingRight="10dp"
-        android:text="Are you sure?" />
+        android:text="@string/syncConfirmationDialogText" />
 
     <LinearLayout
         android:layout_width="wrap_content"

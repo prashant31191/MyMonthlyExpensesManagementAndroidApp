@@ -83,7 +83,6 @@ public class StoresSpinnerOnItemSelectedListener implements
 
 	@Override
 	public void onNothingSelected(AdapterView<?> arg0) {
-		// TODO Auto-generated method stub
 
 	}
 

@@ -12,6 +12,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.channels.FileLock;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -35,6 +36,7 @@ import android.content.DialogInterface;
 import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Debug;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
 import android.util.Log;
@@ -70,7 +72,7 @@ public class MainActivity extends FragmentActivity implements
 	public Spinner storesSpinner;
 	public Spinner categoriesSpinner;
 
-	public StoreItemsArrayAdapter storeItemsArrayAdapter;
+	public static StoreItemsArrayAdapter storeItemsArrayAdapter;
 	public static StoreItemsArrayAdapter searchStoreItemsArrayAdapter;
 
 	private static ProgressDialog pd;
@@ -543,6 +545,9 @@ public class MainActivity extends FragmentActivity implements
 			bufferedReader.close();
 
 			JSONObject jsonObject = new JSONObject(s);
+
+			// This is where we init our static storeItemsJSONArray that we use
+			// every time we update a store item
 			storeItemsJSONArray = new JSONArray(
 					jsonObject.getString("store_items"));
 
@@ -787,6 +792,9 @@ public class MainActivity extends FragmentActivity implements
 	public void onFinishInputDialog(String itemPrice, String itemSize,
 			String itemName, String itemDescription, String itemUnit) {
 
+		// debug
+		Debug.startMethodTracing("onFinishInputDialog");
+
 		// We want to make the updatedItem a local variable that we can use
 		// later to update our store items array and local JSON file
 		StoreItem updatedItem = null;
@@ -815,8 +823,9 @@ public class MainActivity extends FragmentActivity implements
 		// have duplicates in our database (for good reasons).
 
 		// One time for the general storeItemArrayAdapter
+		StoreItem tmpItem;
 		for (int i = 0; i < storeItemsArrayAdapter.getCount(); i++) {
-			StoreItem tmpItem = storeItemsArrayAdapter.getItem(i);
+			tmpItem = storeItemsArrayAdapter.getItem(i);
 			if (tmpItem.getShoppingItemDescription().equalsIgnoreCase(
 					itemDescription)) {
 				updatedItem = new StoreItem(tmpItem);
@@ -827,7 +836,10 @@ public class MainActivity extends FragmentActivity implements
 				// Now we can update our storeItemsArrayAdapter
 				storeItemsArrayAdapter.remove(tmpItem);
 				storeItemsArrayAdapter.add(updatedItem);
+
+				// Why are we sorting? does it make sense?
 				storeItemsArrayAdapter.sort(StoreItem.StoreItemComparator);
+
 				storeItemsArrayAdapter.notifyDataSetChanged();
 
 				// Clear the Autocomplete serach
@@ -843,7 +855,7 @@ public class MainActivity extends FragmentActivity implements
 
 		// And another time for the special serachStoreItemsArrayAdapter
 		for (int i = 0; i < searchStoreItemsArrayAdapter.getCount(); i++) {
-			StoreItem tmpItem = searchStoreItemsArrayAdapter.getItem(i);
+			tmpItem = searchStoreItemsArrayAdapter.getItem(i);
 			if (tmpItem.getShoppingItemDescription().equalsIgnoreCase(
 					itemDescription)) {
 				updatedItem = new StoreItem(tmpItem);
@@ -910,7 +922,10 @@ public class MainActivity extends FragmentActivity implements
 				exist = true;
 			}
 
+			// No need to create a new JSONObject for each iteration so we
+			// declare it outside the loop
 			JSONObject storeItemJSONObject;
+
 			if (exist) {
 				for (int i = 0; i < storeItemsJSONArray.length(); i++) {
 					storeItemJSONObject = storeItemsJSONArray.getJSONObject(i);
@@ -947,12 +962,35 @@ public class MainActivity extends FragmentActivity implements
 				storeItemsJSONArray.put(storeItemJSONObject);
 			}
 
-			// OK, we updated our storeItemsJSONArray, now its time to write it
-			// to disk
-			FileOutputStream outputStream;
+			/*
+			 * OK, we updated our storeItemsJSONArray, now its time to write it 
+			 * to disk. We are going to follow Androind guidelines and move this
+			 * operation out of the main UI thread and into its own thread.
+			 */
+			Thread writeToStoreItemsJSON = new Thread() {
+				public void run() {
+					updateStoreItemsJSONFile();
+				}
+			};
+			writeToStoreItemsJSON.start();
 
+		} catch (Exception e) {
+			Log.d("onFinishInputDialog", e.getLocalizedMessage());
+		}
+
+		// debug
+		Debug.stopMethodTracing();
+	}
+
+	private void updateStoreItemsJSONFile() {
+		try {
+			FileOutputStream outputStream;
 			outputStream = openFileOutput("store_items.json",
 					Context.MODE_PRIVATE);
+
+			// To make sure that our data is safe we are going to put a file
+			// lock on it
+			FileLock fl = outputStream.getChannel().tryLock();
 
 			// Write our JSONArray to disk...
 			StringBuilder stringBuilder = new StringBuilder();
@@ -962,14 +1000,15 @@ public class MainActivity extends FragmentActivity implements
 			stringBuilder.append("}");
 
 			outputStream.write(stringBuilder.toString().getBytes());
+
+			// Release our lock before we close the file
+			fl.release();
+
 			outputStream.close();
 
 		} catch (IOException ioe) {
 			Log.d("onFinishInputDialog", ioe.getLocalizedMessage());
-		} catch (Exception e) {
-			Log.d("onFinishInputDialog", e.getLocalizedMessage());
 		}
-
 	}
 
 	/**

@@ -10,5 +10,9 @@
     <string name="stores_spinner_label">Stores</string>
     <string name="title_activity_splash">SplashActivity</string>
     <string name="search_label">Search</string>
+    <string name="storeImageContentDescriptor">Store Image</string>
+    <string name="splashScreenImageContentDescriptor">splash loading image</string>
+    <string name="itemImageContentDescriptor">Item Image</string>
+    <string name="syncConfirmationDialogText">Are You Sure</string>
 
 </resources>

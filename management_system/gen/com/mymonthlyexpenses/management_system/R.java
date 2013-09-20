@@ -71,8 +71,12 @@ public final class R {
         public static final int add_filter=0x7f050004;
         public static final int app_name=0x7f050000;
         public static final int categories_spinner_label=0x7f050005;
+        public static final int itemImageContentDescriptor=0x7f05000b;
         public static final int search_label=0x7f050008;
+        public static final int splashScreenImageContentDescriptor=0x7f05000a;
+        public static final int storeImageContentDescriptor=0x7f050009;
         public static final int stores_spinner_label=0x7f050006;
+        public static final int syncConfirmationDialogText=0x7f05000c;
         public static final int sync_from_server=0x7f050002;
         public static final int sync_to_server=0x7f050003;
         public static final int title_activity_splash=0x7f050007;

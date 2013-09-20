@@ -11,11 +11,12 @@
         android:id="@+id/storeImageView"
         android:layout_width="100dp"
         android:layout_height="100dp"
+        android:layout_gravity="center"
         android:layout_marginBottom="5dp"
         android:layout_marginLeft="5dp"
         android:layout_marginRight="5dp"
         android:layout_marginTop="5dp"
-        android:layout_gravity="center"
+        android:contentDescription="@string/storeImageContentDescriptor"
         android:src="@drawable/ic_launcher" />
 
     <TextView
