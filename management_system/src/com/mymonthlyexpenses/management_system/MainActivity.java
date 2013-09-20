@@ -36,6 +36,7 @@ import android.content.DialogInterface;
 import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
 import android.util.Log;
@@ -73,6 +74,15 @@ public class MainActivity extends FragmentActivity implements
 	public static StoreItemsArrayAdapter searchStoreItemsArrayAdapter;
 
 	private static ProgressDialog pd;
+
+	// Handler and runnable to allow us to run a background thread while still
+	// communicating with the main UI
+	final Handler mHandler = new Handler();
+	final Runnable mUpdateResults = new Runnable() {
+		public void run() {
+			updateResultsInUi();
+		}
+	};
 
 	public Boolean readAndSaveJSONFeed(String jsonFileName, String URL) {
 		StringBuilder stringBuilder = new StringBuilder();
@@ -310,7 +320,8 @@ public class MainActivity extends FragmentActivity implements
 				new DialogInterface.OnClickListener() {
 
 					public void onClick(DialogInterface dialog, int id) {
-						startSyncFromServerAsyncTask();
+						// startSyncFromServerAsyncTask();
+						startSyncFromServerThread();
 					}
 
 				});
@@ -1091,22 +1102,84 @@ public class MainActivity extends FragmentActivity implements
 		}
 	}
 
-	private void startSyncFromServerAsyncTask() {
-		AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
+	/*
+	 * This is the old method we used inorder to sync from the database
+	 */
 
-			@Override
-			protected void onPreExecute() {
+	/*	private void startSyncFromServerAsyncTask() {
+			AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
 
-				pd = new ProgressDialog(MainActivity.this);
-				pd.setTitle("Processing...");
-				pd.setMessage("Please wait.");
-				pd.setCancelable(false);
-				pd.setIndeterminate(true);
-				pd.show();
-			}
+				@Override
+				protected void onPreExecute() {
 
-			@Override
-			protected Void doInBackground(Void... arg0) {
+					pd = new ProgressDialog(MainActivity.this);
+					pd.setTitle("Processing...");
+					pd.setMessage("Please wait.");
+					pd.setCancelable(false);
+					pd.setIndeterminate(true);
+					pd.show();
+				}
+
+				@Override
+				protected Void doInBackground(Void... arg0) {
+					try {
+						readAndSaveJSONFeed(
+								"shopping_items.json",
+								"http://192.168.1.124/management/managementController.php?sync_shopping_items=from_server");
+
+						readAndSaveJSONFeed(
+								"shopping_item_category.json",
+								"http://192.168.1.124/management/managementController.php?sync_shopping_item_category=from_server");
+
+						readAndSaveJSONFeed(
+								"stores.json",
+								"http://192.168.1.124/management/managementController.php?sync_stores=from_server");
+
+						readAndSaveJSONFeed(
+								"store_items.json",
+								"http://192.168.1.124/management/managementController.php?sync_store_items=from_server");
+
+						readAndSaveJSONFeed(
+								"shopping_items_unit.json",
+								"http://192.168.1.124/management/managementController.php?sync_shopping_item_unit=from_server");
+
+						// Refresh our store items
+						initStoreItemsArray();
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+					return null;
+				}
+
+				@Override
+				protected void onPostExecute(Void result) {
+					if (pd != null) {
+						pd.dismiss();
+					}
+				}
+
+			};
+			task.execute((Void[]) null);
+		}
+	*/
+	/*
+	 * This method will sync our application from the database in a 
+	 * dedicated thread and onces its finished update our UI thread.
+	 */
+	private void startSyncFromServerThread() {
+		/*
+		 * Show a confirmation dialog
+		 */
+		pd = new ProgressDialog(MainActivity.this);
+		pd.setTitle("Processing...");
+		pd.setMessage("Please wait.");
+		pd.setCancelable(false);
+		pd.setIndeterminate(true);
+		pd.show();
+
+		// Start a thread to sync information from the server
+		Thread syncFromServerThread = new Thread() {
+			public void run() {
 				try {
 					readAndSaveJSONFeed(
 							"shopping_items.json",
@@ -1127,47 +1200,23 @@ public class MainActivity extends FragmentActivity implements
 					readAndSaveJSONFeed(
 							"shopping_items_unit.json",
 							"http://192.168.1.124/management/managementController.php?sync_shopping_item_unit=from_server");
+
+					// Refresh our store items
+					initStoreItemsArray();
+
+					mHandler.post(mUpdateResults);
+
+					if (pd != null) {
+						pd.dismiss();
+					}
+
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
-				return null;
 			}
-
-			@Override
-			protected void onPostExecute(Void result) {
-				if (pd != null) {
-					pd.dismiss();
-				}
-
-				// Refresh our store items
-				initStoreItemsArray();
-
-				// Refresh our ArrayAdapter
-				String selectedStore = storesSpinner.getSelectedItem()
-						.toString();
-				String selectedCategory = categoriesSpinner.getSelectedItem()
-						.toString();
-				String selectedStoreId = MainActivity
-						.getStoreIdBasedOnName(selectedStore);
-				String selectedCategoryId = MainActivity
-						.getCategoryIdBasedOnName(selectedCategory);
-
-				// Once for the main array adapter
-				storeItemsArrayAdapter
-						.setStoreItem(getItemsBasedOnCategoryAndStore(
-								storeItems, selectedCategoryId, selectedStoreId));
-				storeItemsArrayAdapter.notifyDataSetChanged();
-
-				// And once for the serach array adapter
-				searchStoreItemsArrayAdapter
-						.setStoreItem(getItemsBasedOnCategoryAndStore(
-								storeItems, selectedCategoryId, selectedStoreId));
-				searchStoreItemsArrayAdapter.notifyDataSetChanged();
-
-			}
-
 		};
-		task.execute((Void[]) null);
+
+		syncFromServerThread.start();
 	}
 
 	/*
@@ -1340,5 +1389,28 @@ public class MainActivity extends FragmentActivity implements
 		}
 
 		return storeItemsInStore;
+	}
+
+	private void updateResultsInUi() {
+		// Refresh our ArrayAdapters
+		String selectedStore = storesSpinner.getSelectedItem().toString();
+		String selectedCategory = categoriesSpinner.getSelectedItem()
+				.toString();
+		String selectedStoreId = MainActivity
+				.getStoreIdBasedOnName(selectedStore);
+		String selectedCategoryId = MainActivity
+				.getCategoryIdBasedOnName(selectedCategory);
+
+		// Once for the main array adapter
+		storeItemsArrayAdapter.setStoreItem(getItemsBasedOnCategoryAndStore(
+				storeItems, selectedCategoryId, selectedStoreId));
+
+		storeItemsArrayAdapter.notifyDataSetChanged();
+
+		// And once for the serach array adapter
+		searchStoreItemsArrayAdapter
+				.setStoreItem(getItemsBasedOnCategoryAndStore(storeItems,
+						selectedCategoryId, selectedStoreId));
+		searchStoreItemsArrayAdapter.notifyDataSetChanged();
 	}
 }
