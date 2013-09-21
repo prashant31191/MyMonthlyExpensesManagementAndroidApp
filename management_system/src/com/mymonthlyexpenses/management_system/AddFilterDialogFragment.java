@@ -43,41 +43,4 @@ public class AddFilterDialogFragment extends DialogFragment {
 				(OnDateSetListener) getActivity(), year, month, day);
 	}
 
-	/*
-	@Override
-	public View onCreateView(LayoutInflater inflater, ViewGroup container,
-		Bundle savedInstanceState) {
-	View view = inflater.inflate(R.layout.fragmented_add_filter_dialog,
-			container);
-
-	// ---get the EditText and Button views---
-	txtAddFilterDate = (EditText) view.findViewById(R.id.txtAddFilterDate);
-
-	btn = (Button) view.findViewById(R.id.btnFilter);
-
-	// ---event handler for the button---
-	btn.setOnClickListener(new View.OnClickListener() {
-		public void onClick(View view) {
-			// ---gets the calling activity---
-			AddFilterDialogListener activity = (AddFilterDialogListener) getActivity();
-
-			activity.onFinishFilterDialog(txtAddFilterDate.getText()
-					.toString());
-			// ---dismiss the alert---
-			dismiss();
-		}
-	});
-
-	// ---show the keyboard automatically---
-	txtAddFilterDate.requestFocus();
-	getDialog().getWindow().setSoftInputMode(
-			LayoutParams.SOFT_INPUT_STATE_VISIBLE);
-
-	// ---set the title for the dialog---
-	getDialog().setTitle(dialogTitle);
-
-	return view;
-	}
-	*/
-
 }

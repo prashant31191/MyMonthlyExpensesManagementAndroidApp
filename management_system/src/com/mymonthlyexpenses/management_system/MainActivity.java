@@ -42,16 +42,19 @@ import android.support.v4.app.FragmentManager;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.WindowManager.LayoutParams;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.DatePicker;
 import android.widget.ImageView;
 import android.widget.Spinner;
 
+import com.mymonthlyexpenses.management_system.StorePickerDialogFragment.StorePickerDialogListener;
 import com.mymonthlyexpenses.management_system.UpdateStoreItemDialogFragment.UpdateStoreItemDialogListener;
 
 public class MainActivity extends FragmentActivity implements
-		UpdateStoreItemDialogListener, DatePickerDialog.OnDateSetListener {
+		UpdateStoreItemDialogListener, DatePickerDialog.OnDateSetListener,
+		StorePickerDialogListener {
 
 	/*
 	 * We are going to use a set of helper arrays to hold our information
@@ -135,66 +138,18 @@ public class MainActivity extends FragmentActivity implements
 		setContentView(R.layout.activity_main);
 
 		/*
-		 * Read our json files into arrays we can use as long as the application
-		 * is running
+		 * In order to make sure we are updaing the correct store
+		 * We are going to show the user a dialog with radio buttons
+		 * for each store and have them choose the store they are going
+		 * to work on
 		 */
-		initDatabaseArrays();
+		FragmentManager fragementManager = ((FragmentActivity) this)
+				.getSupportFragmentManager();
 
-		storesSpinner = (Spinner) findViewById(R.id.storesSpinner);
-		categoriesSpinner = (Spinner) findViewById(R.id.categoriesSpinner);
-
-		this.initStoreSpinner(storesSpinner, stores);
-		this.initCategorySpinner(categoriesSpinner, categories);
-
-		String selectedStore = storesSpinner.getSelectedItem().toString();
-		String selectedCategory = categoriesSpinner.getSelectedItem()
-				.toString();
-		String selectedStoreId = MainActivity
-				.getStoreIdBasedOnName(selectedStore);
-		String selectedCategoryId = MainActivity
-				.getCategoryIdBasedOnName(selectedCategory);
-
-		// Init our one and only StoreItemsArrayAdapter
-		storeItemsArrayAdapter = new StoreItemsArrayAdapter(this,
-				getItemsBasedOnCategoryAndStore(storeItems, selectedCategoryId,
-						selectedStoreId));
-
-		// Init our one and only StoreItemsArrayAdapter
-		searchStoreItemsArrayAdapter = new StoreItemsArrayAdapter(this,
-				getItemsBasedOnStore(storeItems, selectedStoreId));
-
-		categoriesSpinner
-				.setOnItemSelectedListener(new CategoriesSpinnerOnItemSelectedListener(
-						this, storeItemsArrayAdapter));
-
-		storesSpinner
-				.setOnItemSelectedListener(new StoresSpinnerOnItemSelectedListener(
-						this, storeItemsArrayAdapter));
-
-		// initiate search autocomplete text view
-		AutoCompleteTextView serachTextView = (AutoCompleteTextView) findViewById(R.id.autoCompleteSearchView);
-		serachTextView.setThreshold(3);
-		serachTextView.setAdapter(searchStoreItemsArrayAdapter);
-
-		/*
-		 * Load images for store from assests folder
-		 */
-
-		try {
-			// get input stream
-			InputStream ims = this.getAssets().open(
-					getStoreImageLocationByStoreName(selectedStore)
-							.replaceFirst("/", ""));
-			// load image as Drawable
-			Drawable d = Drawable.createFromStream(ims, null);
-			// set image to ImageView
-			((ImageView) this.findViewById(R.id.storeImageView))
-					.setImageDrawable(d);
-
-		} catch (IOException ex) {
-			Log.d("onCreate", ex.getLocalizedMessage());
-		}
-
+		StorePickerDialogFragment storePickerDialogFragment = new StorePickerDialogFragment();
+		storePickerDialogFragment.setCancelable(true);
+		storePickerDialogFragment.setDialogTitle("Choose Store");
+		storePickerDialogFragment.show(fragementManager, "input dialog");
 	}
 
 	@Override
@@ -812,6 +767,10 @@ public class MainActivity extends FragmentActivity implements
 		// later to update our store items array and local JSON file
 		StoreItem updatedItem = null;
 
+		/*
+		 * Sometimes, I dont know exactly how and when, both the category and store id are not
+		 * being put into the json array.
+		 */
 		String shoppingItemCategoryId = getCategoryIdBasedOnName(categoriesSpinner
 				.getSelectedItem().toString());
 		String storeId = getStoreIdBasedOnName(storesSpinner.getSelectedItem()
@@ -900,6 +859,7 @@ public class MainActivity extends FragmentActivity implements
 		// but dont forget that you need to update a specific store and NOT all
 		// sotres with this item!
 		boolean exist = false;
+
 		for (StoreItem storeItem : storeItems) {
 			if ((storeItem.getShoppingItemName().equalsIgnoreCase(itemName))
 					&& (storeItem.getStoreId().equalsIgnoreCase(storeId))) {
@@ -922,18 +882,18 @@ public class MainActivity extends FragmentActivity implements
 				storeItems.add(updatedItem);
 		}
 
+		if (updatedItem.getId() == "") {
+			exist = false;
+		} else {
+			exist = true;
+		}
+
 		/*
 		 * JSONArray update section
 		 */
 		// Last but not least - we need to update our store items JSONArray and
 		// save it to disk
 		try {
-			if (updatedItem.getId() == "") {
-				exist = false;
-			} else {
-				exist = true;
-			}
-
 			// No need to create a new JSONObject for each iteration so we
 			// declare it outside the loop
 			JSONObject storeItemJSONObject;
@@ -961,12 +921,20 @@ public class MainActivity extends FragmentActivity implements
 				storeItemJSONObject = new JSONObject();
 
 				storeItemJSONObject.put("Id", "");
-				storeItemJSONObject.put("Store_Id", storeId);
+
+				/*
+				 * In an atempt to solve the issue where we have corupted json object, instead of using
+				 * the storeId and shoppingItemCategoryId variables, I am going to use the same information 
+				 * from the updatedItem object.
+				 */
+				storeItemJSONObject
+						.put("Store_Id", updatedItem.getStoreId() /*storeId*/);
+				storeItemJSONObject
+						.put("Shopping_Item_Shopping_Item_Category_Id",
+								updatedItem.getShoppingItemCategoryId() /*shoppingItemCategoryId*/);
+
 				storeItemJSONObject.put("Shopping_Item_Id",
 						updatedItem.getShoppingItemId());
-				storeItemJSONObject.put(
-						"Shopping_Item_Shopping_Item_Category_Id",
-						shoppingItemCategoryId);
 				storeItemJSONObject.put("Price", itemPrice);
 				storeItemJSONObject.put("Quantity", itemSize);
 				storeItemJSONObject.put("Updated", currentDateTimeString);
@@ -1019,7 +987,7 @@ public class MainActivity extends FragmentActivity implements
 			outputStream.close();
 
 		} catch (IOException ioe) {
-			Log.d("onFinishInputDialog", ioe.getLocalizedMessage());
+			Log.d("updateStoreItemsJSONFile", ioe.getLocalizedMessage());
 		}
 	}
 
@@ -1168,7 +1136,7 @@ public class MainActivity extends FragmentActivity implements
 	 */
 	private void startSyncFromServerThread() {
 		/*
-		 * Show a confirmation dialog
+		 * Show a progress dialog
 		 */
 		pd = new ProgressDialog(MainActivity.this);
 		pd.setTitle("Processing...");
@@ -1319,7 +1287,7 @@ public class MainActivity extends FragmentActivity implements
 			}
 		}
 
-		return null;
+		return "default.jpg";
 	}
 
 	public static ArrayList<StoreItem> getItemsBasedOnStore(
@@ -1412,5 +1380,94 @@ public class MainActivity extends FragmentActivity implements
 				.setStoreItem(getItemsBasedOnCategoryAndStore(storeItems,
 						selectedCategoryId, selectedStoreId));
 		searchStoreItemsArrayAdapter.notifyDataSetChanged();
+	}
+
+	public void onFinishPickerDialogDialog(String storeName) {
+		/*
+		 * Read our json files into arrays we can use as long as the application
+		 * is running
+		 */
+		initDatabaseArrays();
+
+		storesSpinner = (Spinner) findViewById(R.id.storesSpinner);
+		categoriesSpinner = (Spinner) findViewById(R.id.categoriesSpinner);
+
+		this.initStoreSpinner(storesSpinner, stores);
+		this.initCategorySpinner(categoriesSpinner, categories);
+
+		String selectedStore = storeName;
+		String selectedCategory = categoriesSpinner.getSelectedItem()
+				.toString();
+		String selectedStoreId = MainActivity
+				.getStoreIdBasedOnName(selectedStore);
+		String selectedCategoryId = MainActivity
+				.getCategoryIdBasedOnName(selectedCategory);
+
+		// Init our one and only StoreItemsArrayAdapter
+		storeItemsArrayAdapter = new StoreItemsArrayAdapter(this,
+				getItemsBasedOnCategoryAndStore(storeItems, selectedCategoryId,
+						selectedStoreId));
+
+		// Init our one and only StoreItemsArrayAdapter
+		searchStoreItemsArrayAdapter = new StoreItemsArrayAdapter(this,
+				getItemsBasedOnStore(storeItems, selectedStoreId));
+
+		categoriesSpinner
+				.setOnItemSelectedListener(new CategoriesSpinnerOnItemSelectedListener(
+						this, storeItemsArrayAdapter));
+
+		storesSpinner
+				.setOnItemSelectedListener(new StoresSpinnerOnItemSelectedListener(
+						this, storeItemsArrayAdapter));
+
+		storesSpinner
+				.setSelection(getStoreSpinnerSelectionIndexBasedOnStoreName(storeName));
+
+		// initiate search autocomplete text view
+		AutoCompleteTextView searchTextView = (AutoCompleteTextView) findViewById(R.id.autoCompleteSearchView);
+		searchTextView.setThreshold(3);
+		searchTextView.setAdapter(searchStoreItemsArrayAdapter);
+
+		// When we start the application I dont want to have the keyboard open
+		// yet
+		this.getWindow().setSoftInputMode(LayoutParams.SOFT_INPUT_STATE_HIDDEN);
+
+		/*
+		 * Load images for store from assests folder
+		 */
+
+		try {
+			// get input stream
+			InputStream ims = this.getAssets().open(
+					getStoreImageLocationByStoreName(selectedStore)
+							.replaceFirst("/", ""));
+			// load image as Drawable
+			Drawable d = Drawable.createFromStream(ims, null);
+			// set image to ImageView
+			((ImageView) this.findViewById(R.id.storeImageView))
+					.setImageDrawable(d);
+
+		} catch (IOException ex) {
+			Log.d("onCreate", ex.getLocalizedMessage());
+		}
+	}
+
+	private int getStoreSpinnerSelectionIndexBasedOnStoreName(String storeName) {
+		if (storeName.equalsIgnoreCase("costco"))
+			return 0;
+
+		if (storeName.equalsIgnoreCase("h.e.b"))
+			return 1;
+
+		if (storeName.equalsIgnoreCase("sams club"))
+			return 2;
+
+		if (storeName.equalsIgnoreCase("sprouts"))
+			return 3;
+
+		if (storeName.equalsIgnoreCase("walmart"))
+			return 4;
+
+		return 0;
 	}
 }

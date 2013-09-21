@@ -19,5 +19,11 @@
     <string name="itemUnitTextView">Item Unit</string>
     <string name="itemUpdateBtnText">Update</string>
     <string name="companyName">www.mymonthlyexpenses.com</string>
+    <string name="store_picker_btn_text">Choose</string>
+    <string name="costcoRadioText">Costco</string>
+    <string name="hebRadioText">H.E.B</string>
+    <string name="samsClubRadioText">Sams Club</string>
+    <string name="sproutsRadioText">Sprouts</string>
+    <string name="walmartRadioText">Walmart</string>
 
 </resources>
