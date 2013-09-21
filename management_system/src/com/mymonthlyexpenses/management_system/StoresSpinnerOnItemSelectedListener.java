@@ -9,7 +9,6 @@ import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemSelectedListener;
-import android.widget.AutoCompleteTextView;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.Spinner;
@@ -18,7 +17,6 @@ public class StoresSpinnerOnItemSelectedListener implements
 		OnItemSelectedListener {
 	private StoreItemsArrayAdapter adapter;
 	private ListView myList;
-	private AutoCompleteTextView searchAutoComplete;
 
 	private final Activity context;
 
@@ -28,9 +26,6 @@ public class StoresSpinnerOnItemSelectedListener implements
 		this.context = context;
 		myList = (ListView) (context.findViewById(android.R.id.list));
 		myList.setAdapter(adapter);
-
-		searchAutoComplete = (AutoCompleteTextView) context
-				.findViewById(R.id.autoCompleteSearchView);
 	}
 
 	@Override

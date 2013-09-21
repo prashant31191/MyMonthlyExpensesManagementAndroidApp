@@ -1203,9 +1203,10 @@ public class MainActivity extends FragmentActivity implements
 		addFilterDialogFragment.show(fragementManager, "datePicker");
 	}
 
-	// Once the user has chosen a date for the filter we need to filer our
-	// StoreItemArrayAdapter to only show items where the update value of the
-	// item is older than the chosen date
+	/*
+	 * This method is called once we pick our filter date. This is where the actual filtering of the
+	 * ArrayAdapters takes place.
+	 */
 	public void onDateSet(DatePicker view, int year, int month, int day) {
 
 		/*
@@ -1264,8 +1265,8 @@ public class MainActivity extends FragmentActivity implements
 				if (storeItemLastUpdate.after(filterDate)) {
 					storeItem.setFiltered(true);
 
-					Log.d("getItemsBasedOnDate", "Store Item Last Updated: "
-							+ storeItemLastUpdate.toString());
+					// Log.d("getItemsBasedOnDate", "Store Item Last Updated: "+
+					// storeItemLastUpdate.toString());
 
 				} else {
 					storeItem.setFiltered(false);
@@ -1382,6 +1383,11 @@ public class MainActivity extends FragmentActivity implements
 		searchStoreItemsArrayAdapter.notifyDataSetChanged();
 	}
 
+	/*
+	 * This is the method that runs after we pick a store.
+	 * This is where we initialize all of our spinners and array adapters
+	 * @see com.mymonthlyexpenses.management_system.StorePickerDialogFragment.StorePickerDialogListener#onFinishPickerDialogDialog(java.lang.String)
+	 */
 	public void onFinishPickerDialogDialog(String storeName) {
 		/*
 		 * Read our json files into arrays we can use as long as the application

@@ -71,12 +71,12 @@ public class StoreItemsArrayAdapter extends ArrayAdapter<StoreItem> implements
 		View rowView = view;
 
 		// ---print the index of the row to examine---
-		Log.d("CustomArrayAdapter", String.valueOf(position));
+		// Log.d("CustomArrayAdapter", String.valueOf(position));
 
 		// ---if the row is displayed for the first time---
 		if (rowView == null) {
 
-			Log.d("CustomArrayAdapter", "New");
+			// Log.d("CustomArrayAdapter", "New");
 			LayoutInflater inflater = context.getLayoutInflater();
 			rowView = inflater.inflate(R.layout.lvrowlayout2, null, true);
 
@@ -105,7 +105,7 @@ public class StoreItemsArrayAdapter extends ArrayAdapter<StoreItem> implements
 		} else {
 
 			// ---view was previously created; can recycle---
-			Log.d("CustomArrayAdapter", "Recycling");
+			// Log.d("CustomArrayAdapter", "Recycling");
 			// ---retrieve the previously assigned tag to get
 			// a reference to all the views; bypass the findViewByID() process,
 			// which is computationally expensive---
