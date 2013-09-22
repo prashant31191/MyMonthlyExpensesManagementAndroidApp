@@ -155,11 +155,8 @@ public class MainActivity extends FragmentActivity implements
 	@Override
 	public void onStop() {
 		super.onStop();
-		categories.clear();
-		stores.clear();
-		shoppingItems.clear();
-		storeItems.clear();
-		shoppingItemUnits.clear();
+		// categories.clear();
+		// stores.clear();
 	}
 
 	public static ArrayList<StoreItem> getItemsBasedOnCategoryAndStore(
