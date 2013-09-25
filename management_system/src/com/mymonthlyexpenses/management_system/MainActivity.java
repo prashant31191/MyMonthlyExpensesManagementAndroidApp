@@ -155,8 +155,24 @@ public class MainActivity extends FragmentActivity implements
 	@Override
 	public void onStop() {
 		super.onStop();
-		// categories.clear();
-		// stores.clear();
+		initDatabaseArrays();
+
+	}
+
+	public void onResume() {
+		super.onResume();
+		initDatabaseArrays();
+	}
+
+	/*
+	 * This method will clear all the data in our in memory database arrays
+	 */
+	private void clearDatabaseArrays() {
+		categories.clear();
+		stores.clear();
+		storeItems.clear();
+		shoppingItems.clear();
+		shoppingItemUnits.clear();
 	}
 
 	public static ArrayList<StoreItem> getItemsBasedOnCategoryAndStore(
@@ -729,6 +745,9 @@ public class MainActivity extends FragmentActivity implements
 	 * json files
 	 */
 	private void initDatabaseArrays() {
+
+		// First thing first. We want to clear all arrays in memory.
+		clearDatabaseArrays();
 
 		/*
 		 * This will only work if we already have our files from the server
