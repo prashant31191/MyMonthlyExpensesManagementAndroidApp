@@ -248,7 +248,7 @@ public class StoreItemsArrayAdapter extends ArrayAdapter<StoreItem> implements
 					final String itemName = item.getShoppingItemName()
 							.toLowerCase();
 					// First match against the whole, non-splitted value
-					if (itemName.startsWith(prefixString)) {
+					if (itemName.contains(prefixString)) {
 						newItems.add(item);
 					} else {
 					} /*
