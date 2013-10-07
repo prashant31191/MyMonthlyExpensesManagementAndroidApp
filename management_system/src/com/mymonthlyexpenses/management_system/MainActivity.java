@@ -354,7 +354,7 @@ public class MainActivity extends FragmentActivity implements
 						String fileLocation = getBaseContext().getFilesDir()
 								.getPath() + "/store_items.json";
 						task.execute(fileLocation,
-								"http://192.168.1.124/management/syncToServer.php");
+								"http://www.givonconsulting.com/management/syncToServer.php");
 					}
 
 				});
@@ -1087,66 +1087,6 @@ public class MainActivity extends FragmentActivity implements
 	}
 
 	/*
-	 * This is the old method we used inorder to sync from the database
-	 */
-
-	/*	private void startSyncFromServerAsyncTask() {
-			AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
-
-				@Override
-				protected void onPreExecute() {
-
-					pd = new ProgressDialog(MainActivity.this);
-					pd.setTitle("Processing...");
-					pd.setMessage("Please wait.");
-					pd.setCancelable(false);
-					pd.setIndeterminate(true);
-					pd.show();
-				}
-
-				@Override
-				protected Void doInBackground(Void... arg0) {
-					try {
-						readAndSaveJSONFeed(
-								"shopping_items.json",
-								"http://192.168.1.124/management/managementController.php?sync_shopping_items=from_server");
-
-						readAndSaveJSONFeed(
-								"shopping_item_category.json",
-								"http://192.168.1.124/management/managementController.php?sync_shopping_item_category=from_server");
-
-						readAndSaveJSONFeed(
-								"stores.json",
-								"http://192.168.1.124/management/managementController.php?sync_stores=from_server");
-
-						readAndSaveJSONFeed(
-								"store_items.json",
-								"http://192.168.1.124/management/managementController.php?sync_store_items=from_server");
-
-						readAndSaveJSONFeed(
-								"shopping_items_unit.json",
-								"http://192.168.1.124/management/managementController.php?sync_shopping_item_unit=from_server");
-
-						// Refresh our store items
-						initStoreItemsArray();
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
-					return null;
-				}
-
-				@Override
-				protected void onPostExecute(Void result) {
-					if (pd != null) {
-						pd.dismiss();
-					}
-				}
-
-			};
-			task.execute((Void[]) null);
-		}
-	*/
-	/*
 	 * This method will sync our application from the database in a 
 	 * dedicated thread and onces its finished update our UI thread.
 	 */
@@ -1167,23 +1107,23 @@ public class MainActivity extends FragmentActivity implements
 				try {
 					readAndSaveJSONFeed(
 							"shopping_items.json",
-							"http://192.168.1.124/management/managementController.php?sync_shopping_items=from_server");
+							"http://www.givonconsulting.com/management/managementController.php?sync_shopping_items=from_server");
 
 					readAndSaveJSONFeed(
 							"shopping_item_category.json",
-							"http://192.168.1.124/management/managementController.php?sync_shopping_item_category=from_server");
+							"http://www.givonconsulting.com/management/managementController.php?sync_shopping_item_category=from_server");
 
 					readAndSaveJSONFeed(
 							"stores.json",
-							"http://192.168.1.124/management/managementController.php?sync_stores=from_server");
+							"http://www.givonconsulting.com/management/managementController.php?sync_stores=from_server");
 
 					readAndSaveJSONFeed(
 							"store_items.json",
-							"http://192.168.1.124/management/managementController.php?sync_store_items=from_server");
+							"http://www.givonconsulting.com/management/managementController.php?sync_store_items=from_server");
 
 					readAndSaveJSONFeed(
 							"shopping_items_unit.json",
-							"http://192.168.1.124/management/managementController.php?sync_shopping_item_unit=from_server");
+							"http://www.givonconsulting.com/management/managementController.php?sync_shopping_item_unit=from_server");
 
 					// Refresh our store items
 					initStoreItemsArray();
