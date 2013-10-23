@@ -1,5 +1,7 @@
 package com.mymonthlyexpenses.management_system;
 
+import java.text.DecimalFormat;
+
 import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
 import android.view.LayoutInflater;
@@ -15,6 +17,7 @@ public class UpdateStoreItemDialogFragment extends DialogFragment {
 	EditText txtPrice;
 	EditText txtSize;
 	TextView txtUnit;
+	TextView txtPricePerUnit;
 	Button btn;
 	static String dialogTitle;
 	String itemUnit;
@@ -63,10 +66,28 @@ public class UpdateStoreItemDialogFragment extends DialogFragment {
 		// ---get the EditText and Button views---
 		txtPrice = (EditText) view.findViewById(R.id.txtPrice);
 		txtSize = (EditText) view.findViewById(R.id.txtSize);
+
+		txtPricePerUnit = (TextView) view
+				.findViewById(R.id.itemPricePerUnitTextView);
+
+		try {
+
+			if ((Double.valueOf(itemPrice) != null)
+					&& (Double.valueOf(itemSize) != null)) {
+				DecimalFormat df = new DecimalFormat("0.##");
+				txtPricePerUnit.setText("$ "
+						+ String.valueOf((df.format(Double.valueOf(itemPrice)
+								/ Double.valueOf(itemSize)))));
+			}
+
+		} catch (NumberFormatException exception) {
+			txtPricePerUnit.setText("0");
+		}
+
 		txtUnit = (TextView) view.findViewById(R.id.itemUnitTextView);
 		txtUnit.setText(itemUnit);
 
-		// Show the use the current price and size
+		// Show the user the current price and size
 		if (!itemPrice.equalsIgnoreCase("Unknown At This Time")) {
 			txtPrice.setText(itemPrice);
 			txtSize.setText(itemSize);
