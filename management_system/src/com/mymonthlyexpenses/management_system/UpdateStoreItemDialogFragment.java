@@ -73,7 +73,7 @@ public class UpdateStoreItemDialogFragment extends DialogFragment {
 		try {
 
 			if ((Double.valueOf(itemPrice) != null)
-					&& (Double.valueOf(itemSize) != null)) {
+					&& (Double.valueOf(itemSize) != 0)) {
 				DecimalFormat df = new DecimalFormat("0.##");
 				txtPricePerUnit.setText("$ "
 						+ String.valueOf((df.format(Double.valueOf(itemPrice)

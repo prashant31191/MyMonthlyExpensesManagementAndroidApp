@@ -2,7 +2,9 @@ package com.mymonthlyexpenses.management_system;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 
 import org.apache.commons.lang3.text.WordUtils;
 
@@ -30,6 +32,8 @@ public class StoreItemsArrayAdapter extends ArrayAdapter<StoreItem> implements
 	private ArrayList<StoreItem> backupStoreItems;
 	private ItemsFilter mFilter;
 	private Drawable d;
+	private Drawable updatedDrawable;
+	private String todayString;
 
 	public StoreItemsArrayAdapter(Activity context,
 			ArrayList<StoreItem> storeItems) {
@@ -37,6 +41,23 @@ public class StoreItemsArrayAdapter extends ArrayAdapter<StoreItem> implements
 		this.context = context;
 		this.storeItems = storeItems;
 		this.backupStoreItems = storeItems;
+
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+		Calendar c = Calendar.getInstance();
+
+		this.todayString = sdf.format(c.getTime());
+
+		// Load our updated image into a drawable once
+		try {
+			// get input stream
+			InputStream ims = getContext().getAssets().open(
+					"images/updated.png");
+			// load image as Drawable
+			updatedDrawable = Drawable.createFromStream(ims, null);
+
+		} catch (IOException ex) {
+			Log.d("storeItemArrayAdapter", ex.getLocalizedMessage());
+		}
 	}
 
 	@TargetApi(Build.VERSION_CODES.HONEYCOMB)
@@ -48,6 +69,7 @@ public class StoreItemsArrayAdapter extends ArrayAdapter<StoreItem> implements
 
 	static class ViewContainer {
 		public ImageView imageView;
+		public ImageView updatedImage;
 		public TextView itemNameTextView;
 		public TextView itemDescriptionTextView;
 		public TextView itemPriceTextView;
@@ -96,8 +118,12 @@ public class StoreItemsArrayAdapter extends ArrayAdapter<StoreItem> implements
 					.findViewById(R.id.shoppingItemSizeTextView);
 			viewContainer.itemLastUpdatedTextView = (TextView) rowView
 					.findViewById(R.id.shoppingItemLastUpdatedTextView);
+
 			viewContainer.imageView = (ImageView) rowView
 					.findViewById(R.id.icon);
+
+			viewContainer.updatedImage = (ImageView) rowView
+					.findViewById(R.id.updated);
 
 			// ---assign the view container to the rowView---
 			rowView.setTag(viewContainer);
@@ -150,8 +176,23 @@ public class StoreItemsArrayAdapter extends ArrayAdapter<StoreItem> implements
 			d = Drawable.createFromStream(ims, null);
 			// set image to ImageView
 			viewContainer.imageView.setImageDrawable(d);
+
+			String itemLastUpdate = viewContainer.itemLastUpdated.substring(0,
+					viewContainer.itemLastUpdated.indexOf(" "));
+
+			// If item was updated today we show an updated image on top of it
+			if (itemLastUpdate.equalsIgnoreCase(todayString)) {
+
+				// set image to ImageView
+				viewContainer.updatedImage.setImageDrawable(updatedDrawable);
+
+			} else {
+				viewContainer.updatedImage
+						.setImageResource(android.R.color.transparent);
+			}
+
 		} catch (IOException ex) {
-			Log.d("getView", ex.getLocalizedMessage());
+			Log.d("storeItemArrayAdapter", ex.getLocalizedMessage());
 		}
 
 		/*
