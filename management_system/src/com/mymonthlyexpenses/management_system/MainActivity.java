@@ -354,7 +354,7 @@ public class MainActivity extends FragmentActivity implements
 						String fileLocation = getBaseContext().getFilesDir()
 								.getPath() + "/store_items.json";
 						task.execute(fileLocation,
-								"http://192.168.1.124/management/syncToServer.php");
+								"http://192.168.1.105/management/syncToServer.php");
 					}
 
 				});
@@ -1107,23 +1107,23 @@ public class MainActivity extends FragmentActivity implements
 				try {
 					readAndSaveJSONFeed(
 							"shopping_items.json",
-							"http://192.168.1.124/management/managementController.php?sync_shopping_items=from_server");
+							"http://192.168.1.105/management/managementController.php?sync_shopping_items=from_server");
 
 					readAndSaveJSONFeed(
 							"shopping_item_category.json",
-							"http://192.168.1.124/management/managementController.php?sync_shopping_item_category=from_server");
+							"http://192.168.1.105/management/managementController.php?sync_shopping_item_category=from_server");
 
 					readAndSaveJSONFeed(
 							"stores.json",
-							"http://192.168.1.124/management/managementController.php?sync_stores=from_server");
+							"http://192.168.1.105/management/managementController.php?sync_stores=from_server");
 
 					readAndSaveJSONFeed(
 							"store_items.json",
-							"http://192.168.1.124/management/managementController.php?sync_store_items=from_server");
+							"http://192.168.1.105/management/managementController.php?sync_store_items=from_server");
 
 					readAndSaveJSONFeed(
 							"shopping_items_unit.json",
-							"http://192.168.1.124/management/managementController.php?sync_shopping_item_unit=from_server");
+							"http://192.168.1.105/management/managementController.php?sync_shopping_item_unit=from_server");
 
 					// Refresh our store items
 					initStoreItemsArray();
