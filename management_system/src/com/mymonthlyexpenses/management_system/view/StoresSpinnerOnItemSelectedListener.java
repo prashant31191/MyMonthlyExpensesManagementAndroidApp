@@ -1,7 +1,12 @@
-package com.mymonthlyexpenses.management_system;
+package com.mymonthlyexpenses.management_system.view;
 
 import java.io.IOException;
 import java.io.InputStream;
+
+import com.mymonthlyexpenses.management_system.MainActivity;
+import com.mymonthlyexpenses.management_system.R;
+import com.mymonthlyexpenses.management_system.StoreItemsArrayAdapter;
+import com.mymonthlyexpenses.management_system.R.id;
 
 import android.app.Activity;
 import android.graphics.drawable.Drawable;

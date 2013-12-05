@@ -1,4 +1,4 @@
-package com.mymonthlyexpenses.management_system;
+package com.mymonthlyexpenses.management_system.view;
 
 import java.util.Calendar;
 

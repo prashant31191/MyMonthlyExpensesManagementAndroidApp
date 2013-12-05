@@ -1,4 +1,8 @@
-package com.mymonthlyexpenses.management_system;
+package com.mymonthlyexpenses.management_system.view;
+
+import com.mymonthlyexpenses.management_system.R;
+import com.mymonthlyexpenses.management_system.R.id;
+import com.mymonthlyexpenses.management_system.R.layout;
 
 import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
